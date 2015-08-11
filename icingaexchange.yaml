@@ -1,4 +1,4 @@
-name: check_hwgroup
+name: check_smartvalues
 description: "file:///README.md"
 url: "https://git.netways.org/plugins/check_smartvalues"
 tags: Grapher,Plugin
