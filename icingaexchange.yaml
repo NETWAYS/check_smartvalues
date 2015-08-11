@@ -1,0 +1,18 @@
+name: check_hwgroup
+description: "file:///README.md"
+url: "https://www.netways.org/projects/plugins"
+tags: Grapher,Plugin
+vendor: NETWAYS,Unix,Linux,Icinga
+target: Hardware,Environmental,Inventory,Sensor,Storage
+type: Grapher,Plugin
+license: GPLv2+
+releases: 
+  -
+    name: 0.1
+    description: "0.1 Release"
+    files:
+      -
+        name: check_smartvalues.tar.bz2
+        url: "file:///check_smartvalues.tar.bz2"
+        description: "The entire bundle with all files you need, to get them up and running."
+        checksum: 5da1bca2e1ebd101bb720683cf71ac2d 

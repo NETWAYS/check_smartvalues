@@ -1,0 +1,99 @@
+{
+    "Controller" : [
+        { "ID" : "megaraid",    "RE" : "megaraid,(\\d+)\\s+.*", "ShortName" : "LSI MegaRAID" },
+        { "ID" : "3ware",       "RE" : "3ware,(\\d+)\\s+.*",    "ShortName" : "3ware RAID" },
+        { "ID" : "areca",       "RE" : "areca,(\\d+)\\s+.*",    "ShortName" : "Areca SATA RAID" },
+        { "ID" : "cciss",       "RE" : "cciss,(\\d+)\\s+.*",    "ShortName" : "cciss RAID"  },
+        { "ID" : "hpt",         "RE" : "hpt,(\\d+)\\s+.*",      "ShortName" : "HighPoint RocketRAID" }
+    ],
+    "Devices" : {
+        "DEMO DEVICE" : {
+            "Device" : [ "IDENTIFIER" ],
+            "ID#" : [
+                { "1" : "RV", "CR": 0, "Name" : "Attribute 1", "Desc" : "does this" },
+                { "2" : "NV", "CR": 1, "Name" : "Attribute 2", "Desc" : "does that" }
+            ]
+        }, 
+		"Intel 320" : {
+			"Device" : [ "Intel 320 Series SSDs", "INTEL SSDSA2CW160G3", "INTEL SSDSA2CT040G3" ],
+			"ID#" : [
+				{ "5" : "NV", "CR" : 0, "Name" : "Re-allocated_Sector_Count", "Desc" : "" },
+				{ "9" : "NV", "CR" : 0, "Name" : "Power-On_Hours_Count" },
+				{ "12" : "NV", "CR" : 0, "Name" : "Power-Cycle_Count" },
+				{ "171" : "NV", "CR" : 0, "Name" : "Program-Fail_Count" },
+				{ "172" : "NV", "CR" : 0, "Name" : "Erase-Fail_Count" },
+				{ "183" : "NV", "CR" : 0, "Name" : "SATA-Downshift_Count_(FW_4Px10362_and_later)" },
+				{ "184" : "NV", "CR" : 0, "Name" : "End-to-End_Error_Detection_Count" },
+				{ "187" : "NV", "CR" : 0, "Name" : "Uncorrectable-Error_Count" },
+				{ "192" : "NV", "CR" : 0, "Name" : "Power-Off_Retract_Count_(Unsafe_Shutdown_Count)" },
+				{ "199" : "NV", "CR" : 0, "Name" : "CRC-Error_Count_(FW_4Px10362_and_later)" },
+				{ "226" : "NV", "CR" : 0, "Name" : "Timed_Workload_Media_Wear" },
+				{ "227" : "NV", "CR" : 0, "Name" : "Timed_Workload_Host_Read/Write_Ratio" },
+				{ "228" : "NV", "CR" : 0, "Name" : "Timed_Workload_Timer" },
+				{ "232" : "NV", "CR" : 0, "Name" : "Available_Reserved_Space" },
+				{ "233" : "NV", "CR" : 0, "Name" : "Media_Wearout_Indicator" },
+				{ "241" : "NV", "CR" : 0, "Name" : "Total_LBAs_Written_(32MiB)" },
+				{ "242" : "NV", "CR" : 0, "Name" : "Total_LBAs_Read_(32MiB)" },
+				{ "1024" : "NV", "CR" : 0, "Name" : "ATA_error_count_(custom)" }
+			]
+		},
+		"Intel 530" : {
+			"Device" : ["INTEL SSDSC2BW120A4", "INTEL SSDSC2BW240A4", "INTEL SSDSC2CW240A3", "INTEL SSDSC2CW120A3"],
+			"ID#" : [
+				{ "5" : "NV", "CR" : 0, "Name" : "Reallocated_sector_count", "Desc" : "" },
+				{ "9" : "NV", "CR" : 1, "Name" : "Power_on_hours" },
+				{ "12": "NV", "CR" : 0, "Name" : "Power-cycle_counts" },
+                { "170": "NV", "CR" : 0, "Name" : "Available_Reserved_Space" },
+                { "171": "NV", "CR" : 0, "Name" : "Program_Fail_Count" },
+                { "172": "NV", "CR" : 0, "Name" : "Erase_Fail_Count" },
+                { "174": "NV", "CR" : 0, "Name" : "Unexpected_Power_Loss" },
+                { "183": "NV", "CR" : 0, "Name" : "SATA-Downshift_Count" },
+                { "184" : "NV", "CR" : 0, "Name" : "End-to-End_Error_Detection" },
+				{ "187" : "NV", "CR" : 0, "Name" : "Uncorrectable-Error_Count" },
+				{ "190" : "RV", "CR" : 0, "Name" : "Temperature_case" },
+                { "192": "NV", "CR" : 0, "Name" : "Power-Off_Retract_Count_(Unsafe_Shutdown_Count)" },
+                { "194" : "RV", "CR" : 0, "Name" : "Temperature_device" },
+                { "199": "NV", "CR" : 0, "Name" : "CRC-Error_Count" },
+                { "225": "NV", "CR" : 0, "Name" : "Host_Writes" },
+                { "226": "NV", "CR" : 0, "Name" : "Timed_Workload_Media_Wear" },
+                { "227": "NV", "CR" : 0, "Name" : "Timed_Workload_Host_Read/Write _Ratio" },
+                { "228": "NV", "CR" : 0, "Name" : "Power-off_Retract_Count" },
+                { "232" : "NV", "CR" : 0, "Name" : "Available_Reserved_Space" },
+				{ "233" : "NV", "CR" : 0, "Name" : "Media_Wearout_Indicator" },
+                { "241": "NV", "CR" : 0, "Name" : "Total_LBAs_Written" },
+                { "242": "NV", "CR" : 0, "Name" : "Total_LBAs_Read" },
+                { "249": "NV", "CR" : 0, "Name" : "Total_NAND_Writes" }
+			]
+		},
+		"Intel SSD DC S3500 Series" : {
+			"Device" : ["INTEL SSDSC2BB480G4"],
+			"ID#" : [
+				{ "5" : "NV", "CR" : 0, "Name" : "Reallocated_sector_count", "Desc" : "" },
+				{ "9" : "NV", "CR" : 0, "Name" : "Power_on_hours" },
+				{ "12": "NV", "CR" : 0, "Name" : "Power-cycle_counts" },
+                { "170": "NV", "CR" : 0, "Name" : "Available_Reserved_Space" },
+                { "171": "NV", "CR" : 0, "Name" : "Program_Fail_Count" },
+                { "172": "NV", "CR" : 0, "Name" : "Erase_Fail_Count" },
+                { "174": "NV", "CR" : 0, "Name" : "Unexpected_Power_Loss" },
+                { "183": "NV", "CR" : 0, "Name" : "SATA-Downshift_Count" },
+                { "184" : "NV", "CR" : 0, "Name" : "End-to-End_Error_Detection" },
+				{ "187" : "NV", "CR" : 0, "Name" : "Uncorrectable-Error_Count" },
+				{ "190" : "RV", "CR" : 0, "Name" : "Temperature_case" },
+                { "192": "NV", "CR" : 0, "Name" : "Power-Off_Retract_Count_(Unsafe_Shutdown_Count)" },
+                { "194" : "RV", "CR" : 0, "Name" : "Temperature_device" },
+                { "199": "NV", "CR" : 0, "Name" : "CRC-Error_Count" },
+                { "225": "NV", "CR" : 0, "Name" : "Host_Writes" },
+                { "226": "NV", "CR" : 0, "Name" : "Timed_Workload_Media_Wear" },
+                { "227": "NV", "CR" : 0, "Name" : "Timed_Workload_Host_Read/Write _Ratio" },
+                { "228": "NV", "CR" : 0, "Name" : "Power-off_Retract_Count" },
+                { "232" : "NV", "CR" : 0, "Name" : "Available_Reserved_Space" },
+				{ "233" : "NV", "CR" : 0, "Name" : "Media_Wearout_Indicator" },
+                { "234" : "NV", "CR" : 0, "Name" : "Average_erase_count_AND_Maximum_Erase_Count" },
+                { "241": "NV", "CR" : 0, "Name" : "Total_LBAs_Written" },
+                { "242": "NV", "CR" : 0, "Name" : "Total_LBAs_Read" },
+                { "249": "NV", "CR" : 0, "Name" : "Total_NAND_Writes" }
+			]
+		}
+    }
+}
+

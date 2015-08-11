@@ -1,0 +1,894 @@
+#!/usr/bin/env perl
+
+=begin
+ +----------------------------------------------------------------------------------+
+ | +------------------------------------------------------------------------------+ |
+ | |      S.M.A.R.T. Values                                                       | |
+ | |     Author: Enrico Labedzki <enrico.labedzki@netways.de>                     | |
+ | |                                                                              | |
+ | |     NETWAYS GmbH, www.netways.de, info@netways.de 2014                       | |
+ | |     http://www.gnu.org/licenses/gpl-2.0.html                                 | |
+ | +------------------------------------------------------------------------------+ |
+ +----------------------------------------------------------------------------------+ 
+=cut
+
+BEGIN {
+    my $mods = [
+        'Switch',
+        'File::Basename',
+        'Getopt::Long',
+        'JSON::XS',
+        'Text::Trim',
+        'Time::HiRes',
+        'Try::Tiny',
+        'Scalar::Util',
+        'Exception::Class',
+        'Data::Dumper'
+    ];
+
+    my $unavail = [];
+    
+    foreach my $modul ( @{$mods} ) {
+        eval( "use ".$modul );
+        if( $@ ) {
+            push( @{$unavail}, $modul );
+        }
+    }
+
+    if( @{$unavail} > 0 ) {
+        $_ = join( "\n\t", @{$unavail} );
+        print "This CheckCommand needs the following PerlModules installed on your System:\n\n\t".$_."\n\n";
+        exit 1;
+    }
+}
+
+use 5.014000;
+use strict;
+use warnings;
+use feature qw( say );
+use File::Basename qw( basename );
+use Getopt::Long qw( :config no_ignore_case );
+use Time::HiRes qw( time );
+use Scalar::Util qw( blessed );
+use Exception::Class(
+    'BaseException',
+    'IOException'       => { isa => 'BaseException', error => '' },
+    'JSONException'     => { isa => 'BaseException', error => '' }
+);
+
+use constant {
+	DEBUG		=> 0,
+	OK			=> 0,
+	WARNING		=> 1,
+	CRITICAL	=> 2,
+	UNKNOWN		=> 3
+};
+
+no Data::Dumper;
+
+if( DEBUG ) {
+    require Data::Dumper;
+}
+
+# ====================== SANITY ==============================
+
+my $perfdata    = 0;
+my $help		= 0;
+my @device		= ();
+my $path		= '/usr/sbin/smartctl';
+my $database	= undef;
+my $config		= undef;
+my $sudo		= 0;
+my $verbose		= 0;
+my $starttime   = time();
+my $duration    = 0;
+
+GetOptions(
+	'h|help'		=> \$help,
+	'p|path=s'		=> \$path,
+	'd|device=s'	=> \@device,
+	'db|database=s'	=> \$database,
+	'c|config=s'	=> \$config,
+	's|sudo'		=> \$sudo,
+	'v|verbose'		=> \$verbose,
+    'pd|perfdata'   => \$perfdata,
+	'vv'			=> sub { $verbose = 2; },
+	'vvv'			=> sub { $verbose = 3; }
+);
+
+if( getpwuid $> ne "root" and $sudo == 0 ) {
+    say( "can only be run as root user or with switch -s for sudo privileged user." );
+    exit UNKNOWN;
+}
+
+if( $help ) {
+    help();
+} else {
+	unless( defined $path and defined $database and @device > 0 ) {
+        say( "Usage: ". basename( $0 ) ."
+                -p or --path=/path/to/smartctl
+                -d or --device=\"/dev/sdc\"
+                -db or --database=/path/to/check_smartvalues.db.json
+                -c or --config=/path/to/check_smartvalues.conf.json
+                -s or --sudo ( defaults to nosudo )
+                -v or -vv or -vvv ( verbosity level )
+                -h or --help ( a better brief description )
+            \n" );
+		exit UNKNOWN;
+	}
+}
+
+try {
+    unless( defined $config ) {
+        $config = { 
+            "Devices" => {
+                "NULLDEV" => {
+                    "Device" => [ "ZERO ID" ],
+                    "ID#" => []
+                }
+            }
+        };
+    } else {
+        $config	= getConfigHash();
+    }
+
+    $database	= getDatabaseHash();
+}
+catch {
+    if( blessed $_ and $_->isa( 'BaseException' ) ) {
+        say( "EXCEPTION: ". $_->error );
+    } else {
+        if( blessed $_ and $_->can( 'rethrow' ) ) {
+            $_->rethrow();
+        } else {
+            die $_;
+        }
+    }
+    
+    exit UNKNOWN;
+};
+
+my $tracked_dev = undef;
+my $glob_result = {
+    "Oks"       => 0,
+    "Warnings"  => 0,
+    "Criticals" => 0,
+    "Unknowns"  => 0,
+    "Devices"   => {}
+};
+
+# ======================= MAIN ===============================
+foreach my $dev ( @device ) { # once per device
+    my @smartoutput = getSmartOutput( $dev );
+
+    foreach my $line ( @smartoutput ) {
+        if( $line =~ m/Device Model:\s+(.+)|Model Family:\s+(.+)/ ) {
+            $tracked_dev->{Name} = $1;
+            say( "Tracked Device: ".$tracked_dev->{Name} ) if( $verbose > 1 );
+            $tracked_dev->{Attributes}  = getDeviceFromDB( $tracked_dev->{Name} );
+            $tracked_dev->{Config}      = getDeviceFromCfg( $tracked_dev->{Name} );
+            $tracked_dev->{Controller}  = getControllerFromDB( $dev );
+            $tracked_dev->{DeviceID}    = getDeviceIDFromDB( $dev );
+
+            my @result = getAttributeTable( \@smartoutput, $tracked_dev->{Attributes}, $tracked_dev->{Config} );
+
+            foreach ( @result ) {
+                $_->{Controller}    = $tracked_dev->{Controller};
+                $_->{DeviceID}      = $tracked_dev->{DeviceID};
+                printEntry( $_ ) if( $verbose > 2 );
+                validateResult( $dev, $_ );
+            }
+
+            last;
+        }
+    }
+}
+
+exit printResult();
+
+# ===================== FUNCTIONS ============================
+
+###########################
+sub printEntry {
+###########################
+    $_ = shift;
+    say( "
+        ID: ". $_->{ID}. "
+        AttribName: ". $_->{AttribName} ."
+        Flag: ". $_->{Flag} ."
+        Value: ". $_->{Value} ."
+        Worst: ". $_->{Worst} ."
+        Thresh: ". $_->{Thresh} ."
+        Type: ". $_->{Type} ."
+        Updated: ". $_->{Updated} ."
+        WhenFailed: ". $_->{WhenFailed} ."
+        RawValue: ". $_->{RawValue} ."
+        CR: ". $_->{CR} ."
+        WarnVal: ". $_->{WarnVal} ."
+        CritVal: ". $_->{CritVal} ."
+        WantedVal: ". $_->{WantedVal} ."
+        Controller: ". $_->{Controller} ."
+        DeviceID: ". $_->{DeviceID} ."
+    " );
+}
+
+###########################
+sub spcToUc {
+###########################
+    $_ = shift;
+    $_ =~ s/\s+/_/;
+    return $_;
+}
+
+###########################
+sub octStrToDec {
+###########################
+    $_ = shift;
+    $_ =~ s/^[0]+([1-90]+)/$1/;
+    return $_;
+}
+
+###########################
+sub isBelowThreshhold {
+###########################
+    my $nvalue  = octStrToDec( shift ); # original value ( normalized )
+    my $thresh  = octStrToDec( shift ); # threshhold value
+    my $warn    = octStrToDec( shift ); # warning value
+    my $crit    = octStrToDec( shift ); # crit value
+    my $reverse = shift;                # reverse conditions
+
+    my $retval = UNKNOWN;
+
+    if( $warn == 0 ) {
+        if( $thresh >= $nvalue ) { say( '$warn == 0 , $thresh >= $nvalue , WARNING('. $thresh .'>='. $nvalue .')' ) if( $verbose > 2 ); $retval = WARNING; }
+        elsif( $thresh < $nvalue ) { say( '$warn == 0 , $thresh < $nvalue , OK('. $thresh .'<'. $nvalue .')' ) if( $verbose > 2 ); $retval = OK; }
+    } else {
+        if( $warn >= $nvalue ) { say( '$warn <> 0 , $warn >= $nvalue , WARNING('. $warn .'>='. $nvalue .')' ) if( $verbose > 2 ); $retval = WARNING; }
+        elsif( $warn < $nvalue ) { say( '$warn <> 0 , $thresh < $nvalue , OK('. $warn .'<'. $nvalue .')' ) if( $verbose > 2 ); $retval = OK; }
+    }   
+
+    if( $crit == 0 ) { 
+        unless( $reverse ) {
+            if      ( $thresh >= $nvalue ) { say( '$crit == 0 , unless $reverse , $thresh > $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
+            elsif   ( $thresh < $nvalue ) { say( '$crit == 0 , unless $reverse , $thresh < $nvalue , OK' ) if( $verbose > 2 ); $retval = OK; }
+        } else {
+            if      ( $thresh <= $nvalue ) { say( '$crit == 0 , if $reverse , $thresh < $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
+            elsif   ( $thresh > $nvalue ) { say( '$crit == 0 , if $reverse , $thresh > $nvalue , OK' ) if( $verbose > 2 ); $retval = OK; }
+        }
+    } else {
+        unless( $reverse ) {
+            if      ( $crit >= $nvalue ) { say( '$crit <> 0 , unless $reverse , $crit >= $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
+            elsif   ( $crit < $nvalue ) { say( '$crit <> 0 , unless $reverse , $crit < $nvalue , OK' ) if( $verbose > 2 ); $retval = OK; }
+        } else {
+            if      ( $crit <= $nvalue ) { say( '$crit <> 0 , if $reverse , $crit <= $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
+            elsif   ( $crit > $nvalue ) { say( '$crit <> 0 , if $reverse , $crit > $nvalue , OK' ) if( $verbose > 2 ); $retval = OK; }
+        }
+    }
+
+    return $retval;
+}
+
+###########################
+sub validateResult {
+###########################
+    my $device  = shift;
+    my $entry   = shift;
+
+    my $result = isBelowThreshhold( $entry->{Value}, $entry->{Thresh}, $entry->{WarnVal}, $entry->{CritVal}, $entry->{CR} );
+    addResultInformation( $device, $entry, $result );
+}
+
+###########################
+sub pushToGlobal {
+###########################
+    my $device  = shift;
+    my $entry   = shift;
+    my $state   = shift;
+
+    switch( $state ) {
+        case OK         { $state = "Ok"; }
+        case WARNING    { $state = "Warning"; }
+        case CRITICAL   { $state = "Critical"; }
+        case UNKNOWN    { $state = "Unknown"; }
+    }
+
+    $glob_result->{Devices}->{$device}->{$state}->{Count} += 1;
+    $glob_result->{$state.'s'} += 1;
+
+    push(
+        @{$glob_result->{Devices}->{$device}->{$state}->{Message}},
+        "#". $entry->{ID} ." - ". $entry->{AttribName} ." is [ ".
+        (( octStrToDec($entry->{Thresh}) eq "0" )
+            ? (( $entry->{WantedVal} eq "NV" ) ? $entry->{Value} : $entry->{RawValue}) ." ". (( $entry->{WarnVal} > 0 or $entry->{CritVal} > 0 ) ? "] - [ w: ". $entry->{WarnVal} .", c: ". $entry->{CritVal} ." ]" : "]" )
+            : (( $entry->{WantedVal} eq "NV" ) ? $entry->{Value} : $entry->{RawValue}) ." / ". $entry->{Thresh} ." ". (( $entry->{WarnVal} > 0 or $entry->{CritVal} > 0 ) ? "] - [ w: ". $entry->{WarnVal} .", c: ". $entry->{CritVal} ." ]" : "]" )
+        )
+    );
+    push(
+        @{$glob_result->{Devices}->{$device}->{$state}->{PerfData}},
+        $entry->{AttribName}."'=".
+            (( $entry->{WantedVal} eq "NV" )
+                ? ($entry->{Value} ."%;")
+                : ($entry->{RawValue} ."c;")
+            ) .$entry->{WarnVal}.";".$entry->{CritVal}
+    );
+}
+
+###########################
+sub addResultInformation {
+###########################
+    my $device  = shift;
+    my $entry   = shift;
+    my $result  = shift;
+
+    my $devname  = $device;
+    $device = spcToUc($device);
+
+    #say( Dumper( $entry ) ) if DEBUG;
+
+    unless( exists $glob_result->{Devices}->{$device} ) {
+        $glob_result->{Devices}->{$device}->{Controller}            = $entry->{Controller};
+        $glob_result->{Devices}->{$device}->{DeviceID}              = $entry->{DeviceID};
+        $glob_result->{Devices}->{$device}->{DevName}               = $devname;
+
+        $glob_result->{Devices}->{$device}->{Ok}                    = {};
+        $glob_result->{Devices}->{$device}->{Ok}->{Count}           = 0;
+        $glob_result->{Devices}->{$device}->{Ok}->{Message}         = [];
+        $glob_result->{Devices}->{$device}->{Ok}->{PerfData}        = [];
+
+        $glob_result->{Devices}->{$device}->{Warning}               = {};
+        $glob_result->{Devices}->{$device}->{Warning}->{Count}      = 0;
+        $glob_result->{Devices}->{$device}->{Warning}->{Message}    = [];
+        $glob_result->{Devices}->{$device}->{Warning}->{PerfData}   = [];
+
+        $glob_result->{Devices}->{$device}->{Critical}              = {};
+        $glob_result->{Devices}->{$device}->{Critical}->{Count}     = 0;
+        $glob_result->{Devices}->{$device}->{Critical}->{Message}   = [];
+        $glob_result->{Devices}->{$device}->{Critical}->{PerfData}  = [];
+
+        $glob_result->{Devices}->{$device}->{Unknown}               = {};
+        $glob_result->{Devices}->{$device}->{Unknown}->{Count}      = 0;
+        $glob_result->{Devices}->{$device}->{Unknown}->{Message}    = [];
+        $glob_result->{Devices}->{$device}->{Unknown}->{PerfData}   = [];
+    }
+
+    if( $result == WARNING )        { pushToGlobal( $device, $entry, WARNING ); }
+    elsif( $result == CRITICAL )    { pushToGlobal( $device, $entry, CRITICAL ); }
+    elsif( $result == UNKNOWN )     { pushToGlobal( $device, $entry, UNKNOWN ); }
+    else                            { pushToGlobal( $device, $entry, OK ); }
+}
+
+###########################
+sub printResult {
+###########################
+    $_ = $glob_result;
+    my $finalmsg    = undef;
+    my $stdmsgpart  = "[ ".$_->{Oks}
+                        ." OK ] - [ ". $_->{Warnings}
+                        ." WARNING ] - [ ". $_->{Criticals}
+                        ." CRITICAL ] - [ ". $_->{Unknowns}
+                        ." UNKNOWN ] in ".
+                        ( time() - $starttime )
+                        ."ms ( for details pls take a look in longoutput )";
+    my $retval   = UNKNOWN;
+
+    unless( $_->{Unknowns} > $_->{Oks} or
+            $_->{Unknowns} > $_->{Warnings} or
+            $_->{Unknowns} > $_->{Criticals} ) {
+        unless( $_->{Criticals} > $_->{Warnings} ) {
+            unless( $_->{Warnings} > 0 ) {
+                if( $_->{Oks} > 0 ) {
+                    $retval = OK;
+                    $finalmsg = "OK: ". $stdmsgpart;
+                    $finalmsg .= addPerfdata( $_ ) if( $perfdata );
+                    $finalmsg .= addLongOutput( $_ );
+                } else {
+                    $retval = UNKNOWN;
+                    $finalmsg = "UNKNOWN: ". $stdmsgpart;
+                    $finalmsg .= addPerfdata( $_ ) if( $perfdata );
+                    $finalmsg .= addLongOutput( $_ );
+                }
+            } else {
+                $retval = WARNING;
+                $finalmsg = "WARNING: ". $stdmsgpart;
+                $finalmsg .= addPerfdata( $_ ) if( $perfdata );
+                $finalmsg .= addLongOutput( $_ );
+            }
+        } else {
+            $retval = CRITICAL;
+            $finalmsg = "CRITICAL: ". $stdmsgpart;
+            $finalmsg .= addPerfdata( $_ ) if( $perfdata );
+            $finalmsg .= addLongOutput( $_ );
+        }
+    } else {
+        $retval = UNKNOWN;
+        $finalmsg = "UNKNOWN: ". $stdmsgpart;
+        $finalmsg .= addPerfdata( $_ ) if( $perfdata );
+        $finalmsg .= addLongOutput( $_ );
+    }
+
+    say( $finalmsg );
+    return $retval;
+}
+
+###########################
+sub addPerfdata {
+###########################
+    $_              = shift;
+    #my $for_state   = shift;
+    my $finalmsg    = "";
+
+    foreach my $dev ( keys %{$_->{Devices}} ) {
+        foreach my $for_state ( "Ok", "Warning", "Critical", "Unknown" ) {
+            foreach my $msg ( @{$_->{Devices}->{$dev}->{$for_state}->{PerfData}} ) {
+                $finalmsg .= "'".$dev ." - " . $msg ." ";
+            }
+        }
+    }
+
+    return " | " .$finalmsg ."\n";
+}
+
+###########################
+sub longOutputMsg {
+###########################
+    $_      = shift;
+    my $dev    = shift;
+    my $state  = shift;
+    my $msg    = shift;
+
+    switch( $state ) {
+        case OK         { $state = "OK:"; }
+        case WARNING    { $state = "WARNING:"; }
+        case CRITICAL   { $state = "CRITICAL:"; }
+        case UNKNOWN    { $state = "UNKNOWN:"; }
+    }
+
+    #if( $state eq "WARNING:" ) {
+    #    say( Dumper( $_ ) );
+    #} 
+    
+    return $state ." on ". (
+        ( defined $_->{Devices}->{$dev}->{Controller} )
+            ? ( $_->{Devices}->{$dev}->{Controller} ." - [ DeviceID ". $_->{Devices}->{$dev}->{DeviceID} ." ]" )
+            : $_->{Devices}->{$dev}->{DevName}
+    ) ." - ". $msg ."\n";
+}
+
+###########################
+sub addLongOutput {
+###########################
+    $_ = shift;
+    my $finalmsg = "";
+
+    foreach my $dev ( keys %{$_->{Devices}} ) {
+        if( $_->{Devices}->{$dev}->{Ok}->{Count} > 0 ) {
+            foreach my $msg ( @{$_->{Devices}->{$dev}->{Ok}->{Message}} ) {
+                $finalmsg .= longOutputMsg( $_, $dev, OK, $msg );
+            }
+        }
+        if( $_->{Devices}->{$dev}->{Warning}->{Count} > 0 ) {
+            foreach my $msg ( @{$_->{Devices}->{$dev}->{Warning}->{Message}} ) {
+                $finalmsg .= longOutputMsg( $_, $dev, WARNING, $msg ); 
+            }
+        }
+        if( $_->{Devices}->{$dev}->{Critical}->{Count} > 0 ) {
+            foreach my $msg ( @{$_->{Devices}->{$dev}->{Critical}->{Message}} ) {
+                $finalmsg .= longOutputMsg( $_, $dev, CRITICAL, $msg ); 
+            }
+        }
+        if( $_->{Devices}->{$dev}->{Unknown}->{Count} > 0 ) {
+            foreach my $msg ( @{$_->{Devices}->{$dev}->{Unknown}->{Message}} ) {
+                $finalmsg .= longOutputMsg( $_, $dev, UNKNOWN, $msg ); 
+            }
+        }
+    }
+
+    return $finalmsg;
+}
+
+###########################
+sub getDescFromAttributeID {
+###########################
+    my $for_id      = shift;
+    my $attributes  = shift;
+
+    foreach my $entry ( @{$attributes->{"ID#"}} ) {
+        if( exists $entry->{$for_id} ) {
+            return ( exists $entry->{Name} ) ? $entry->{Name} : "UNKNOWN_ATTRIBUTE";
+        }
+    }
+}
+
+###########################
+sub getCRFromAttributeID {
+###########################
+    my $for_id      = shift;
+    my $attributes  = shift;
+
+    foreach my $entry ( @{$attributes->{"ID#"}} ) {
+        if( exists $entry->{$for_id} ) {
+            return ( exists $entry->{CR} ) ? $entry->{CR} : 0;
+        }
+    }
+}
+
+###########################
+sub getValueTypeFromAttributeID {
+###########################
+    my $for_id      = shift;
+    my $attributes  = shift;
+
+    foreach my $entry ( @{$attributes->{"ID#"}} ) {
+        if( exists $entry->{$for_id} ) {
+            return $entry->{$for_id};
+        }
+    }
+
+    return "NV";
+}
+
+###########################
+sub getWarnValFromAttributeID {
+###########################
+    my $for_id  = shift;
+    my $config  = shift;
+
+    #say( Dumper( $config ) ) if DEBUG;
+    
+    if( defined $config ) {
+        if( exists $config->{Threshs} ) {
+            foreach my $entry ( keys %{$config->{Threshs}} ) {
+                if( $entry =~ m/$for_id/ ) {
+                    if( exists $config->{Threshs}->{$for_id} ) {
+                        return ( defined ((@{$config->{Threshs}->{$for_id}})[0]) )
+                            ? (@{$config->{Threshs}->{$for_id}})[0] : 0 ;
+                    }
+                } else {
+                    next;
+                }
+            }
+
+            return  0;
+        } else {
+            return 0;
+        }
+    } else {
+        return 0;
+    }
+}
+
+###########################
+sub getCritValFromAttributeID {
+###########################
+    my $for_id  = shift;
+    my $config  = shift;
+
+    if( defined $config ) {
+        if( exists $config->{Threshs} ) {
+            foreach my $entry ( keys %{$config->{Threshs}} ) {
+                if( $entry =~ m/$for_id/ ) {
+                    if( exists $config->{Threshs}->{$for_id} ) {
+                        return ( defined ((@{$config->{Threshs}->{$for_id}})[1]) )
+                            ? (@{$config->{Threshs}->{$for_id}})[1] : 0 ;
+                    }
+                } else {
+                    next;
+                }
+            }
+
+            return 0;
+        } else {
+            return 0;
+        }
+    } else {
+        return 0;
+    }
+}
+
+###########################
+sub getPerfdataFromAttributeID {
+###########################
+    my $for_id  = shift;
+    my $config  = shift;
+
+    foreach my $entry ( @{$config->{"ID#"}} ) {
+        if( exists $entry->{$for_id} ) {
+            return ( exists $entry->{CritVal} ) ? $entry->{CritVal} : undef;
+        }
+    }
+}
+
+###########################
+sub getAttributeTable {
+###########################
+    my $smartout    = shift;
+    my $attributes  = shift;
+    my $config      = shift;
+
+    my @result = ();
+    
+    my $begin_of_table  = 0;
+    my $end_of_table    = 0;
+    foreach my $line ( @{$smartout} ) {
+        chomp( $line );
+
+        last if( $end_of_table );
+        if( $line =~ m/ID#\s+ATTRIB/ ){
+            $begin_of_table = 1;
+            next;
+        } else {
+            if( $begin_of_table ) {
+                if( $line !~ m/^\s+\d+|^\d+/ or $line =~m/\s+\R/ ){
+                    $end_of_table = 1;
+                } else {
+                    $line =~ s/^\s+//i; # removes leading spaces
+                    my @val = split( /\s+/, $line );
+        
+                    push( @result, {
+                        ID          => trim( $val[0] ),
+                        AttribName  =>
+                            ( $val[1] =~ m/Unknown_Attribute|Unknown_SSD_Attribute/i )
+                                ? getDescFromAttributeID( $val[0], $attributes )
+                                : $val[1],
+                        Flag        => $val[2],
+                        Value       => $val[3],
+                        Worst       => $val[4],
+                        Thresh      => $val[5],
+                        Type        => $val[6],
+                        Updated     => $val[7],
+                        WhenFailed  => $val[8],
+                        RawValue    => $val[9],
+                        CR          => getCRFromAttributeID( $val[0], $attributes ),
+                        WarnVal     => getWarnValFromAttributeID( $val[0], $config ),
+                        CritVal     => getCritValFromAttributeID( $val[0], $config ),
+                        WantedVal   => getValueTypeFromAttributeID( $val[0], $attributes )
+                    });
+                }
+            }
+        }
+    }
+
+    return @result;
+}
+
+###########################
+sub getControllerFromDB {
+###########################
+    my $dev = shift;
+
+    foreach my $entry ( @{$database->{Controller}} ) {
+        if( $dev =~ m/$entry->{ID}/i ) {
+            return $entry->{ShortName};
+        }
+    }
+
+    return undef;
+}
+
+###########################
+sub getDeviceIDFromDB {
+###########################
+    my $dev = shift;
+
+    foreach my $entry ( @{$database->{Controller}} ) {
+        if( $dev =~ m/$entry->{ID}/i ) {
+            if( $dev =~ m/$entry->{RE}/i ) {
+                return ( defined $1 ) ? $1 : undef;
+            }
+        }
+    }
+
+    return undef;
+}
+
+###########################
+sub getDeviceFromDB {
+###########################
+    my $dev = shift;
+
+    foreach my $e1 ( keys $database->{Devices} ) {
+        foreach my $e2 ( keys $database->{Devices}->{$e1} ) {
+            foreach my $e3 ( @{$database->{Devices}->{$e1}->{Device}} ) {
+                if( $dev =~ m/$e3/ ) {
+                    return $database->{Devices}->{$e1};
+                }
+            }
+        }
+    }
+}
+
+###########################
+sub getDeviceFromCfg {
+###########################
+    my $dev     = shift;
+    my $result  = undef;
+    my $found   = 0;
+
+    if( defined $config ) {
+        foreach my $e1 ( keys $config->{Devices} ) {
+            foreach my $e2 ( keys $config->{Devices}->{$e1} ) {
+                foreach my $e3 ( @{$config->{Devices}->{$e1}->{Device}} ) {
+                    last if( $found );
+                    if( $dev =~ m/$e3/ ) {
+                        $result = $config->{Devices}->{$e1};
+                        $found  = 1;
+                    } else {
+                        next;
+                    }
+                }
+            }
+        }
+    } else {
+        $result = {
+            "Device" => [ "ZERO ID" ],
+            "Threshs" => {},
+            "Perfs" => []
+        };
+    }
+
+    return $result;
+}
+
+###########################
+sub getConfigHash {
+###########################
+    my $fh      = undef;
+    my $chash   = undef;
+
+    try {
+        unless( -e $config ) {
+            IOException->throw( "\"". $config ."\" - file not found." );
+        } else {
+            open( $fh, "<:encoding(UTF-8)", $config )
+                or IOException->throw( "can't open/read \"". $config ."\" - file." );
+            my $jsonparser = new JSON::XS;
+            $jsonparser->utf8( 1 );
+            $chash = $jsonparser->decode( join( "\n", <$fh> ) ) 
+                or JSONException->throw( "can't parse JSON data from \"". $config ."\" - file." );
+        }
+    }
+    catch {
+        if( blessed $_ and $_->isa( 'IOException' ) ) {
+            say( "IO-EXCEPTION: ". $_->error );
+        }
+        elsif( blessed $_ and $_->isa( 'JSONException' ) ) {
+            say( "JSON-READER-EXCEPTION: ". $_->error );
+            close( $fh );
+        }
+        else {
+            if( blessed $_ and $_->can( 'rethrow' ) ) {
+                $_->rethrow();
+            } else {
+                die $_;
+            }
+        }
+
+        exit UNKNOWN;
+    };
+
+    close( $fh ) if( defined $fh );
+     
+    #say( Dumper( $chash ) ) if DEBUG;
+    return $chash;
+}
+
+###########################
+sub getDatabaseHash {
+###########################
+    my $fh      = undef;
+    my $dhash   = undef;
+    
+    try {
+        unless( -e $database ) {
+            IOException->throw( "\"". $database ."\" - file not found." );
+        } else {
+            open( my $fh, "<:encoding(UTF-8)", $database )
+                or IOException->throw( "can't open/read \"". $database ."\" - file." );
+            my $jsonparser = new JSON::XS;
+            $jsonparser->utf8( 1 );
+            $dhash = $jsonparser->decode( join( "\n", <$fh> ) )
+                or JSONException->throw( "can't parse JSON data from \"". $database ."\" - file." );
+        }
+    }
+    catch {
+        if( blessed $_ and $_->isa( 'IOException' ) ) {
+            say( "IO-EXCEPTION: ". $_->error ."" );
+        }
+        elsif( blessed $_ and $_->isa( 'JSONException' ) ) {
+            say( "JSON-READER-EXCEPTION: ". $_->error );
+            close( $fh );
+        }
+        else {
+            if( blessed $_ and $_->can( 'rethrow' ) ) {
+                $_->rethrow();
+            } else {
+                die $_;
+            }
+        }
+
+        exit UNKNOWN;
+    };
+
+    close( $fh ) if( defined $fh );
+    return $dhash;
+}
+
+###########################
+sub getSmartOutput {
+###########################
+    my $wanted_dev = shift;
+    my $fh  = undef;
+    my @out = undef;
+
+    try {
+        unless( -e $path ) {
+            IOException->throw( "can't execute \"". $path ."\" - possibly insufficient rights." );
+        } else {
+            open( $fh, "-|", ( $sudo ) ? "sudo ".$path." -a -d ".$wanted_dev : $path." -a -d ".$wanted_dev );
+            if( ($? >> 8) & 2 ) {
+                say( "Error: smartctl returned \"No such device\" for device \"". $wanted_dev ."\"" );
+                exit UNKNOWN;
+            }
+            @out = <$fh>;
+        }
+    }
+    catch {
+        if( blessed $_ and $_->isa( 'IOException' ) ) {
+            say( "IO-EXCEPTION: ". $_->error ."" );
+        }
+        else {
+            if( blessed $_ and $_->can( 'rethrow' ) ) {
+                $_->rethrow();
+            } else {
+                die $_;
+            }
+        }
+
+        exit UNKNOWN;
+    };
+
+    close( $fh ) if( defined $fh );
+    return @out;
+}
+
+###########################
+sub help {
+###########################
+	say( "
+  [-p|--path <path to smartctl]
+        Specify the path at which the smartctl binary can be found. Per
+        default /usr/sbin/smartctl is taken.
+  [-d|--device <path to device being checked>]
+        Specify the device being monitored. If multiple devices should be
+        checked provide the '-d' option multiple times.
+		The Parameter schould be Quoted for eq. 'megaraid Controller'
+		or something Special Smartmon-Syntax like '-d \"megaraid,22 /dev/blah\"'.
+  [-db|--database /path/to/JSON-file]
+        Specify the path at which the JSON smart db can be found. The JSON file
+        defines which parameter (VALUE or RAW_VALUE) must be taken for a
+        sensor. In order to interpret a sensor it is necessary to know which
+        value to take. As this mapping can be different for device models a
+        database is needed for a device.
+  [-c|--config /path/to/Config-JSON-file]
+        Specify the path at which the JSON user config file can be found.
+        The user config can be used to override thresholds and performance values
+        in the base config. This can be useful if the thresholds for a specific
+        device must be changed (e.g. showing up a non-critical error). If a value
+        is defined in the user config it overrides its corresponding value in
+        the base config. The override is only taken for the specific value, for
+        the other ones the base config is still valid.
+  [-sudo]
+        Disable the usage of sudo for smartctl. This is handy if a system is
+        used where sudo is not available.
+  [-v <Verbose Level>]
+       be verbose
+         (no -v) .. single line output
+         -v ..... single line output with additional details for warnings
+         -vv ..... multi line output, also with additional details for warnings
+         -vvv ..... normal output, then debugging output
+  [-h|--help]
+       show this help\n" );
+}
+
+__END__
+

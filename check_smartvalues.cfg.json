@@ -1,0 +1,31 @@
+{
+	"Devices" : {
+		"Intel 320" : {
+            "Device" : [ "Intel 320 Series SSDs", "INTEL SSDSA2CW160G3", "INTEL SSDSA2CT040G3" ],
+			"Threshs" : {
+				"233" : ["35","30"]
+			},
+			"Perfs" : ["241","242"]
+		},
+        "Intel 530" : {
+            "Device" : ["INTEL SSDSC2BW120A4", "INTEL SSDSC2BW240A4", "INTEL SSDSC2CW240A3", "INTEL SSDSC2CW120A3"],
+            "Threshs" : {
+                "233" : ["35","25"],
+                "9"   : ["200","300"]
+            },
+            "Perfs" : ["241","242"]
+        },
+        "Intel SSD DC S3500 Series" : {
+            "Device" : ["INTEL SSDSC2BB480G4"],
+            "Threshs" : {
+                "171" : ["16","11"],
+                "172" : ["16","11"],
+                "184" : ["96","91"],
+                "232" : ["16","11"],
+                "233" : ["16","6"]
+            },
+            "Perfs" : ["233","241","242"]
+        }
+	}
+}
+
