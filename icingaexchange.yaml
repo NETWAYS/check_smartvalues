@@ -1,6 +1,6 @@
 name: check_hwgroup
 description: "file:///README.md"
-url: "https://www.netways.org/projects/plugins"
+url: "https://git.netways.org/plugins/check_smartvalues"
 tags: Grapher,Plugin
 vendor: NETWAYS,Unix,Linux,Icinga
 target: Hardware,Environmental,Inventory,Sensor,Storage
