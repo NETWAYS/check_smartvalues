@@ -231,6 +231,7 @@ sub octStrToDec {
 ###########################
 sub isBelowThreshhold {
 ###########################
+    my $id      = shift;                # the smart key
     my $nvalue  = octStrToDec( shift ); # original value ( normalized )
     my $thresh  = octStrToDec( shift ); # threshhold value
     my $warn    = octStrToDec( shift ); # warning value
@@ -240,29 +241,43 @@ sub isBelowThreshhold {
     my $retval = UNKNOWN;
 
     if( $warn == 0 ) {
-        if( $thresh >= $nvalue ) { say( '$warn == 0 , $thresh >= $nvalue , WARNING('. $thresh .'>='. $nvalue .')' ) if( $verbose > 2 ); $retval = WARNING; }
-        elsif( $thresh < $nvalue ) { say( '$warn == 0 , $thresh < $nvalue , OK('. $thresh .'<'. $nvalue .')' ) if( $verbose > 2 ); $retval = OK; }
+        unless( $reverse ) {
+            if( $thresh >= $nvalue ) { say( 'ID# '.$id.': $warn == 0 , unless $reverse, $thresh >= $nvalue , WARNING( '. $thresh .' >= '. $nvalue .' )' ) if( $verbose > 2 ); $retval = WARNING; }
+            elsif( $thresh < $nvalue ) { say( 'ID# '.$id.': $warn == 0 , unless $reverse, $thresh < $nvalue , OK( '. $thresh .' < '. $nvalue .' )' ) if( $verbose > 2 ); $retval = OK; }
+        } else {
+            if( $thresh <= $nvalue ) { say( 'ID# '.$id.': $warn == 0 , if $reverse, $thresh <= $nvalue , WARNING( '. $thresh .' <= '. $nvalue .' )' ) if( $verbose > 2 ); $retval = WARNING; }
+            elsif( $thresh > $nvalue ) { say( 'ID# '.$id.': $warn == 0 , if $reverse, $thresh > $nvalue , OK( '. $thresh .' > '. $nvalue .' )' ) if( $verbose > 2 ); $retval = OK; }
+        }
     } else {
-        if( $warn >= $nvalue ) { say( '$warn <> 0 , $warn >= $nvalue , WARNING('. $warn .'>='. $nvalue .')' ) if( $verbose > 2 ); $retval = WARNING; }
-        elsif( $warn < $nvalue ) { say( '$warn <> 0 , $thresh < $nvalue , OK('. $warn .'<'. $nvalue .')' ) if( $verbose > 2 ); $retval = OK; }
-    }   
+        unless( $reverse ) {
+            if( $warn >= $nvalue ) { say( 'ID# '.$id.': $warn <> 0 , unless $reverse, $warn >= $nvalue , WARNING( '. $warn .' >= '. $nvalue .' )' ) if( $verbose > 2 ); $retval = WARNING; }
+            elsif( $warn < $nvalue ) { say( 'ID# '.$id.': $warn <> 0 , unless $reverse, $thresh < $nvalue , OK( '. $warn .' < '. $nvalue .' )' ) if( $verbose > 2 ); $retval = OK; }
+        } else {
+            if( $warn <= $nvalue ) { say( 'ID# '.$id.': $warn <> 0 , if $reverse, $warn <= $nvalue , WARNING( '. $warn .' <= '. $nvalue .' )' ) if( $verbose > 2 ); $retval = WARNING; }
+            elsif( $warn > $nvalue ) { say( 'ID# '.$id.': $warn <> 0 , if $reverse, $thresh > $nvalue , OK( '. $warn .' > '. $nvalue .' )' ) if( $verbose > 2 ); $retval = OK; }
+        }
+    }
 
-    if( $crit == 0 ) { 
-        unless( $reverse ) {
-            if      ( $thresh >= $nvalue ) { say( '$crit == 0 , unless $reverse , $thresh > $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
-            elsif   ( $thresh < $nvalue ) { say( '$crit == 0 , unless $reverse , $thresh < $nvalue , OK' ) if( $verbose > 2 ); $retval = OK; }
+    if( $retval == WARNING ) { # so it can also be a critical, let's check this ..
+        if( $crit == 0 ) { 
+            unless( $reverse ) {
+                if      ( $thresh >= $nvalue ) { say( 'ID# '.$id.': $crit == 0 , unless $reverse , $thresh > $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
+                elsif   ( $thresh < $nvalue ) { say( 'ID# '.$id.': $crit == 0 , unless $reverse , $thresh < $nvalue , OK' ) if( $verbose > 2 ); $retval = $retval; }
+            } else {
+                if      ( $thresh <= $nvalue ) { say( 'ID# '.$id.': $crit == 0 , if $reverse , $thresh < $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
+                elsif   ( $thresh > $nvalue ) { say( 'ID# '.$id.': $crit == 0 , if $reverse , $thresh > $nvalue , OK' ) if( $verbose > 2 ); $retval = $retval; }
+            }
         } else {
-            if      ( $thresh <= $nvalue ) { say( '$crit == 0 , if $reverse , $thresh < $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
-            elsif   ( $thresh > $nvalue ) { say( '$crit == 0 , if $reverse , $thresh > $nvalue , OK' ) if( $verbose > 2 ); $retval = OK; }
+            unless( $reverse ) {
+                if      ( $crit >= $nvalue ) { say( 'ID# '.$id.': $crit <> 0 , unless $reverse , $crit >= $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
+                elsif   ( $crit < $nvalue ) { say( 'ID# '.$id.': $crit <> 0 , unless $reverse , $crit < $nvalue , OK' ) if( $verbose > 2 ); $retval = $retval; }
+            } else {
+                if      ( $crit <= $nvalue ) { say( 'ID# '.$id.': $crit <> 0 , if $reverse , $crit <= $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
+                elsif   ( $crit > $nvalue ) { say( 'ID# '.$id.': $crit <> 0 , if $reverse , $crit > $nvalue , OK' ) if( $verbose > 2 ); $retval = $retval; }
+            }
         }
     } else {
-        unless( $reverse ) {
-            if      ( $crit >= $nvalue ) { say( '$crit <> 0 , unless $reverse , $crit >= $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
-            elsif   ( $crit < $nvalue ) { say( '$crit <> 0 , unless $reverse , $crit < $nvalue , OK' ) if( $verbose > 2 ); $retval = OK; }
-        } else {
-            if      ( $crit <= $nvalue ) { say( '$crit <> 0 , if $reverse , $crit <= $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
-            elsif   ( $crit > $nvalue ) { say( '$crit <> 0 , if $reverse , $crit > $nvalue , OK' ) if( $verbose > 2 ); $retval = OK; }
-        }
+        say( 'ID# '.$id.": wasn't a warning so this value can never be a critical" ) if( $verbose > 2 );
     }
 
     return $retval;
@@ -274,7 +289,7 @@ sub validateResult {
     my $device  = shift;
     my $entry   = shift;
 
-    my $result = isBelowThreshhold( $entry->{Value}, $entry->{Thresh}, $entry->{WarnVal}, $entry->{CritVal}, $entry->{CR} );
+    my $result = isBelowThreshhold( $entry->{'ID'}, $entry->{Value}, $entry->{Thresh}, $entry->{WarnVal}, $entry->{CritVal}, $entry->{CR} );
     addResultInformation( $device, $entry, $result );
 }
 
