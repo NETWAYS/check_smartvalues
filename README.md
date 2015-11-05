@@ -14,7 +14,8 @@ You want to monitor your HDD/SSD(s), her is a solution to do it, try it out.
 
 ### Usage
 
-<pre><code># cd /path/to/check/smartvalues
+<pre><code>
+# cd /path/to/check_smartvalues
 # ./check_smartvalues -db check_smartvalues.db.json -c check_smartvalues.db.json -s -d 'megaraid,22 /dev/sda'
 OK: [ 22 OK ] - [ 0 WARNING ] - [ 0 CRITICAL ] - [ 0 UNKNOWN ] in 0.163578987121582ms ( for details pls take a look in longoutput )
 OK: on LSI MegaRAID - [ DeviceID 22 ] - #5 - Reallocated_Sector_Ct is [ 100 ]
@@ -44,7 +45,7 @@ OK: on LSI MegaRAID - [ DeviceID 22 ] - #249 - Total_NAND_Writes is [ 100 ]
 
 ### Version
 
- - 0.1
+ - 0.3
 
 ### ToDo
 
@@ -55,5 +56,43 @@ OK: on LSI MegaRAID - [ DeviceID 22 ] - #249 - Total_NAND_Writes is [ 100 ]
 
 ## Changelog
 
- - comming soon [initial release]
+ - [bugfix/feature] ( see history )
+   - added a new samsung ssd to database and config with some usefull threshhold's
+   - fixed a bug which corrects the condition between normal and raw values
+   - fixed the verbose debug output of return value condition description
 
+ - [bugfix/critical] when the normalized value is in warning but not critical, the critical elsif condition overrides always the warning $retval, so the check ( eg. ID ) will never be in a warning state 
+ - [initial release] version 0.1
+
+## Git history
+<pre><code>
+commit bbd16733f55a9631413690ff12466fb9cff4636d
+Author: Enrico Labedzki <enrico.labedzki@root.center>
+Date:   Thu Oct 29 17:28:55 2015 +0100
+
+    [bugfix] when the normalized value is in warning but not critical, the critical elsif condition overrides always the warning $retval, so the check ( eg. ID ) will never be in a warning state
+
+commit 922d291d6bd895c23167e6f58acfbb66dbfbc17f
+Author: Enrico Labedzki <enrico.labedzki@netways.de>
+Date:   Tue Aug 11 13:44:37 2015 +0200
+
+    [nms] changed project name
+
+commit ebf9b6d6294b0b0dcf33213c0bd2d513a91e6d61
+Author: Enrico Labedzki <enrico.labedzki@netways.de>
+Date:   Tue Aug 11 12:56:00 2015 +0200
+
+    [nms] added a usage example
+
+commit 1b279297920ceea8237e62c036f7de56d395e573
+Author: Enrico Labedzki <enrico.labedzki@netways.de>
+Date:   Tue Aug 11 12:40:37 2015 +0200
+
+    [nms] changed plugin anchor
+
+commit 0b6296c410136ecca04887c2489d6dc6320adc93
+Author: Enrico Labedzki <enrico.labedzki@netways.de>
+Date:   Tue Aug 11 11:46:31 2015 +0200
+
+    [nms] initial release/commit
+</code></pre>

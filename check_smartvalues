@@ -3,53 +3,64 @@
 =begin
  +----------------------------------------------------------------------------------+
  | +------------------------------------------------------------------------------+ |
- | |      S.M.A.R.T. Values                                                       | |
+ | |     Check S.M.A.R.T. Values                                                  | |
  | |     Author: Enrico Labedzki <enrico.labedzki@netways.de>                     | |
  | |                                                                              | |
  | |     NETWAYS GmbH, www.netways.de, info@netways.de 2014                       | |
+ | |     License: GPLv2                                                           | |
  | |     http://www.gnu.org/licenses/gpl-2.0.html                                 | |
  | +------------------------------------------------------------------------------+ |
- +----------------------------------------------------------------------------------+ 
+ +----------------------------------------------------------------------------------+
+
+ for details see README.md in project directory or use the --help switch for usage examples
 =cut
 
-BEGIN {
-    my $mods = [
-        'Switch',
-        'File::Basename',
-        'Getopt::Long',
-        'JSON::XS',
-        'Text::Trim',
-        'Time::HiRes',
-        'Try::Tiny',
-        'Scalar::Util',
-        'Exception::Class',
-        'Data::Dumper'
-    ];
-
-    my $unavail = [];
-    
-    foreach my $modul ( @{$mods} ) {
-        eval( "use ".$modul );
-        if( $@ ) {
-            push( @{$unavail}, $modul );
-        }
-    }
-
-    if( @{$unavail} > 0 ) {
-        $_ = join( "\n\t", @{$unavail} );
-        print "This CheckCommand needs the following PerlModules installed on your System:\n\n\t".$_."\n\n";
-        exit 1;
-    }
-}
+#BEGIN {
+#    my $mods = [
+#        'Switch',
+#        'File::Basename',
+#        'Getopt::Long',
+#        'JSON::XS',
+#        'Text::Trim',
+#        'Time::HiRes',
+#        'Try::Tiny',
+#        'Scalar::Util',
+#        'Exception::Class',
+#        'Data::Dumper'
+#    ];
+#
+#    my $unavail = [];
+#    
+#    foreach my $modul ( @{$mods} ) {
+#        eval( "use ".$modul );
+#        if( $@ ) {
+#            push( @{$unavail}, $modul );
+#        }
+#    }
+#
+#    if( @{$unavail} > 0 ) {
+#        $_ = join( "\n\t", @{$unavail} );
+#        print "This CheckCommand needs the following PerlModules installed on your System:\n\n\t".$_."\n\n";
+#        exit 1;
+#    }
+#}
 
 use 5.014000;
 use strict;
 use warnings;
-use feature qw( say );
-use File::Basename qw( basename );
-use Getopt::Long qw( :config no_ignore_case );
-use Time::HiRes qw( time );
-use Scalar::Util qw( blessed );
+use feature			qw( say );
+use Config;
+
+use Switch;
+use JSON::XS;
+use Text::Trim;
+use Try::Tiny;
+use Scalar::Util;
+
+use File::Basename	qw( basename );
+use Getopt::Long	qw( :config no_ignore_case );
+use Time::HiRes		qw( time );
+use Scalar::Util	qw( blessed );
 use Exception::Class(
     'BaseException',
     'IOException'       => { isa => 'BaseException', error => '' },
@@ -57,7 +68,10 @@ use Exception::Class(
 );
 
 use constant {
-	DEBUG		=> 0,
+	DEBUG		=> 1,
+	TRUE		=> 1,
+	FALSE		=> 0,
+
 	OK			=> 0,
 	WARNING		=> 1,
 	CRITICAL	=> 2,
@@ -67,7 +81,7 @@ use constant {
 no Data::Dumper;
 
 if( DEBUG ) {
-    require Data::Dumper;
+    use Data::Dumper;
 }
 
 # ====================== SANITY ==============================
@@ -83,6 +97,9 @@ my $verbose		= 0;
 my $starttime   = time();
 my $duration    = 0;
 
+my $json		= 0;
+my $yaml		= 0;
+
 GetOptions(
 	'h|help'		=> \$help,
 	'p|path=s'		=> \$path,
@@ -93,7 +110,9 @@ GetOptions(
 	'v|verbose'		=> \$verbose,
     'pd|perfdata'   => \$perfdata,
 	'vv'			=> sub { $verbose = 2; },
-	'vvv'			=> sub { $verbose = 3; }
+	'vvv'			=> sub { $verbose = 3; },
+	'j|json'		=> \$json,
+	'y|yaml'		=> \$yaml
 );
 
 if( getpwuid $> ne "root" and $sudo == 0 ) {
@@ -106,10 +125,10 @@ if( $help ) {
 } else {
 	unless( defined $path and defined $database and @device > 0 ) {
         say( "Usage: ". basename( $0 ) ."
-                -p or --path=/path/to/smartctl
-                -d or --device=\"/dev/sdc\"
-                -db or --database=/path/to/check_smartvalues.db.json
-                -c or --config=/path/to/check_smartvalues.conf.json
+                -p or --path=/path/to/smartctl ( only if needed )
+                -d or --device=\"/dev/sdc\" ( REQUIRED )
+                -db or --database=/path/to/check_smartvalues.db.json ( REQUIRED )
+                -c or --config=/path/to/check_smartvalues.conf.json ( REQUIRED )
                 -s or --sudo ( defaults to nosudo )
                 -v or -vv or -vvv ( verbosity level )
                 -h or --help ( a better brief description )
@@ -148,7 +167,6 @@ catch {
     exit UNKNOWN;
 };
 
-my $tracked_dev = undef;
 my $glob_result = {
     "Oks"       => 0,
     "Warnings"  => 0,
@@ -157,27 +175,42 @@ my $glob_result = {
     "Devices"   => {}
 };
 
+my ($smart_model, $smart_attr) = getSmartCtlVersion();
+
 # ======================= MAIN ===============================
 foreach my $dev ( @device ) { # once per device
     my @smartoutput = getSmartOutput( $dev );
 
     foreach my $line ( @smartoutput ) {
-        if( $line =~ m/Device Model:\s+(.+)|Model Family:\s+(.+)/ ) {
+		my $tracked_dev = undef;
+        
+		if( $line =~ m/Model Family:\s+(.*)/ or
+			$line =~ m/Device Model:\s+(.*)/ ) {
             $tracked_dev->{Name} = $1;
-            say( "Tracked Device: ".$tracked_dev->{Name} ) if( $verbose > 1 );
-            $tracked_dev->{Attributes}  = getDeviceFromDB( $tracked_dev->{Name} );
-            $tracked_dev->{Config}      = getDeviceFromCfg( $tracked_dev->{Name} );
-            $tracked_dev->{Controller}  = getControllerFromDB( $dev );
-            $tracked_dev->{DeviceID}    = getDeviceIDFromDB( $dev );
+			if( defined $tracked_dev->{Name} ) {
+            	say( "Tracked Device: ".$tracked_dev->{Name} ) if( $verbose > 1 );
+            	$tracked_dev->{Attributes}  = getDeviceFromDB( $tracked_dev->{Name} );
+            	$tracked_dev->{Config}      = getDeviceFromCfg( $tracked_dev->{Name} );
+            	$tracked_dev->{Controller}  = getControllerFromDB( $dev );
+            	$tracked_dev->{DeviceID}    = getDeviceIDFromDB( $dev );
 
-            my @result = getAttributeTable( \@smartoutput, $tracked_dev->{Attributes}, $tracked_dev->{Config} );
+				my @result = undef;
+				if( defined $tracked_dev->{Attributes} and 
+					ref $tracked_dev->{Attributes} ) {
+            		@result = getAttributeTable( \@smartoutput, $tracked_dev->{Attributes}, $tracked_dev->{Config} );
+				} else {
+					next;
+				}
 
-            foreach ( @result ) {
-                $_->{Controller}    = $tracked_dev->{Controller};
-                $_->{DeviceID}      = $tracked_dev->{DeviceID};
-                printEntry( $_ ) if( $verbose > 2 );
-                validateResult( $dev, $_ );
-            }
+            	foreach ( @result ) {
+                	$_->{Controller}    = ( $tracked_dev->{Controller} ) ? $tracked_dev->{Controller} : "unavailable";
+                	$_->{DeviceID}      = ( $tracked_dev->{DeviceID} ) ? $tracked_dev->{DeviceID} : "unavailable";
+                	printEntry( $_ ) if( $verbose > 2 );
+                	validateResult( $dev, $_ );
+            	}
+			} else {
+				say( "can't find tracked device description for device [ ". $dev ." ], pls have a look in your database." );
+			}
 
             last;
         }
@@ -187,6 +220,54 @@ foreach my $dev ( @device ) { # once per device
 exit printResult();
 
 # ===================== FUNCTIONS ============================
+
+###########################
+sub getSmartCtlVersion {
+###########################
+	my $version		= undef;
+	my $smctl_param	= undef;
+	my @out			= ();
+	my $fh			= undef;
+
+	try {
+		open( $fh, "-|", ( $sudo ) ? "sudo ".$path." -V" : $path." -V" );
+		@out = <$fh>;	
+	}
+	catch {
+        if( blessed $_ and $_->isa( 'IOException' ) ) {
+            say( "IO-EXCEPTION: ". $_->error ."" );
+        }
+        else {
+            if( blessed $_ and $_->can( 'rethrow' ) ) {
+                $_->rethrow();
+            } else {
+                die $_;
+            }
+        }
+
+        exit UNKNOWN;
+    };
+
+	foreach my $line ( @out ) {
+		if( $line =~ m/smartctl\s+(\d+\.\d+)/ ) {
+			$version = $1;
+
+			switch( $version ) {
+				case m/\d+.\d+/	{
+					say( "smartctl ". $version ." detected - filling params with correct switches." ) if( $verbose > 1 );
+				}
+				default		{
+					say( "unknown smartctl version ( ". $version ." ), can not determine the correct parameters to use with."  );
+					exit UNKNOWN;
+				}
+			}
+
+			last;
+		}
+	}
+
+	return $smctl_param;
+}
 
 ###########################
 sub printEntry {
@@ -213,7 +294,7 @@ sub printEntry {
 }
 
 ###########################
-sub spcToUc {
+sub spc2Uc {
 ###########################
     $_ = shift;
     $_ =~ s/\s+/_/;
@@ -221,7 +302,7 @@ sub spcToUc {
 }
 
 ###########################
-sub octStrToDec {
+sub octStr2Dec {
 ###########################
     $_ = shift;
     $_ =~ s/^[0]+([1-90]+)/$1/;
@@ -232,52 +313,96 @@ sub octStrToDec {
 sub isBelowThreshhold {
 ###########################
     my $id      = shift;                # the smart key
-    my $nvalue  = octStrToDec( shift ); # original value ( normalized )
-    my $thresh  = octStrToDec( shift ); # threshhold value
-    my $warn    = octStrToDec( shift ); # warning value
-    my $crit    = octStrToDec( shift ); # crit value
+    my $nvalue  = octStr2Dec( shift );  # original value ( normalized )
+    my $rvalue  = shift;                # original value ( but raw )
+    my $thresh  = octStr2Dec( shift );  # threshhold value
+    my $warn    = octStr2Dec( shift );  # warning value
+    my $crit    = octStr2Dec( shift );  # crit value
     my $reverse = shift;                # reverse conditions
+    my $type    = shift;                # type condition
 
     my $retval = UNKNOWN;
 
     if( $warn == 0 ) {
         unless( $reverse ) {
-            if( $thresh >= $nvalue ) { say( 'ID# '.$id.': $warn == 0 , unless $reverse, $thresh >= $nvalue , WARNING( '. $thresh .' >= '. $nvalue .' )' ) if( $verbose > 2 ); $retval = WARNING; }
-            elsif( $thresh < $nvalue ) { say( 'ID# '.$id.': $warn == 0 , unless $reverse, $thresh < $nvalue , OK( '. $thresh .' < '. $nvalue .' )' ) if( $verbose > 2 ); $retval = OK; }
+            if( $type eq "NV" ) {
+                if( $thresh >= $nvalue ) { say( "\tID# ".$id.': $warn == 0 , unless $reverse, $thresh >= $nvalue , WARNING( '. $thresh .' >= '. $nvalue .' )' ) if( $verbose > 2 ); $retval = WARNING; }
+                elsif( $thresh < $nvalue ) { say( "\tID# ".$id.': $warn == 0 , unless $reverse, $thresh < $nvalue , OK( '. $thresh .' < '. $nvalue .' )' ) if( $verbose > 2 ); $retval = OK; }
+            } else {
+                if( $thresh >= $rvalue ) { say( "\tID# ".$id.': $warn == 0 , unless $reverse, $thresh >= $rvalue , WARNING( '. $thresh .' >= '. $rvalue .' )' ) if( $verbose > 2 ); $retval = WARNING; }
+                elsif( $thresh < $rvalue ) { say( "\tID# ".$id.': $warn == 0 , unless $reverse, $thresh < $rvalue , OK( '. $thresh .' < '. $rvalue .' )' ) if( $verbose > 2 ); $retval = OK; }
+            }
         } else {
-            if( $thresh <= $nvalue ) { say( 'ID# '.$id.': $warn == 0 , if $reverse, $thresh <= $nvalue , WARNING( '. $thresh .' <= '. $nvalue .' )' ) if( $verbose > 2 ); $retval = WARNING; }
-            elsif( $thresh > $nvalue ) { say( 'ID# '.$id.': $warn == 0 , if $reverse, $thresh > $nvalue , OK( '. $thresh .' > '. $nvalue .' )' ) if( $verbose > 2 ); $retval = OK; }
+            if( $type eq "NV" ) {
+                if( $thresh <= $nvalue ) { say( "\tID# ".$id.': $warn == 0 , if $reverse, $thresh <= $nvalue , WARNING( '. $thresh .' <= '. $nvalue .' )' ) if( $verbose > 2 ); $retval = WARNING; }
+                elsif( $thresh > $nvalue ) { say( "\tID# ".$id.': $warn == 0 , if $reverse, $thresh > $nvalue , OK( '. $thresh .' > '. $nvalue .' )' ) if( $verbose > 2 ); $retval = OK; }
+            } else {
+                if( $thresh >= $rvalue ) { say( "\tID# ".$id.': $warn == 0 , unless $reverse, $thresh >= $rvalue , WARNING( '. $thresh .' >= '. $rvalue .' )' ) if( $verbose > 2 ); $retval = WARNING; }
+                elsif( $thresh < $rvalue ) { say( "\tID# ".$id.': $warn == 0 , unless $reverse, $thresh < $rvalue , OK( '. $thresh .' < '. $rvalue .' )' ) if( $verbose > 2 ); $retval = OK; }
+            }
         }
     } else {
         unless( $reverse ) {
-            if( $warn >= $nvalue ) { say( 'ID# '.$id.': $warn <> 0 , unless $reverse, $warn >= $nvalue , WARNING( '. $warn .' >= '. $nvalue .' )' ) if( $verbose > 2 ); $retval = WARNING; }
-            elsif( $warn < $nvalue ) { say( 'ID# '.$id.': $warn <> 0 , unless $reverse, $thresh < $nvalue , OK( '. $warn .' < '. $nvalue .' )' ) if( $verbose > 2 ); $retval = OK; }
+            if( $type eq "NV" ) {
+                if( $warn >= $nvalue ) { say( "\tID# ".$id.': $warn <> 0 , unless $reverse, $warn >= $nvalue , WARNING( '. $warn .' >= '. $nvalue .' )' ) if( $verbose > 2 ); $retval = WARNING; }
+                elsif( $warn < $nvalue ) { say( "\tID# ".$id.': $warn <> 0 , unless $reverse, $thresh < $nvalue , OK( '. $warn .' < '. $nvalue .' )' ) if( $verbose > 2 ); $retval = OK; }
+            } else {
+                if( $warn >= $rvalue ) { say( "\tID# ".$id.': $warn <> 0 , unless $reverse, $warn >= $rvalue , WARNING( '. $warn .' >= '. $rvalue .' )' ) if( $verbose > 2 ); $retval = WARNING; }
+                elsif( $warn < $rvalue ) { say( "\tID# ".$id.': $warn <> 0 , unless $reverse, $thresh < $rvalue , OK( '. $warn .' < '. $rvalue .' )' ) if( $verbose > 2 ); $retval = OK; }
+            }
         } else {
-            if( $warn <= $nvalue ) { say( 'ID# '.$id.': $warn <> 0 , if $reverse, $warn <= $nvalue , WARNING( '. $warn .' <= '. $nvalue .' )' ) if( $verbose > 2 ); $retval = WARNING; }
-            elsif( $warn > $nvalue ) { say( 'ID# '.$id.': $warn <> 0 , if $reverse, $thresh > $nvalue , OK( '. $warn .' > '. $nvalue .' )' ) if( $verbose > 2 ); $retval = OK; }
+            if( $type eq "NV" ) {
+                if( $warn <= $nvalue ) { say( "\tID# ".$id.': $warn <> 0 , if $reverse, $warn <= $nvalue , WARNING( '. $warn .' <= '. $nvalue .' )' ) if( $verbose > 2 ); $retval = WARNING; }
+                elsif( $warn > $nvalue ) { say( "\tID# ".$id.': $warn <> 0 , if $reverse, $thresh > $nvalue , OK( '. $warn .' > '. $nvalue .' )' ) if( $verbose > 2 ); $retval = OK; }
+            } else {
+                if( $warn <= $rvalue ) { say( "\tID# ".$id.': $warn <> 0 , if $reverse, $warn <= $rvalue , WARNING( '. $warn .' <= '. $rvalue .' )' ) if( $verbose > 2 ); $retval = WARNING; }
+                elsif( $warn > $rvalue ) { say( "\tID# ".$id.': $warn <> 0 , if $reverse, $thresh > $rvalue , OK( '. $warn .' > '. $rvalue .' )' ) if( $verbose > 2 ); $retval = OK; }
+            }
         }
     }
 
+    # -------------------------------------------------
+    
     if( $retval == WARNING ) { # so it can also be a critical, let's check this ..
         if( $crit == 0 ) { 
             unless( $reverse ) {
-                if      ( $thresh >= $nvalue ) { say( 'ID# '.$id.': $crit == 0 , unless $reverse , $thresh > $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
-                elsif   ( $thresh < $nvalue ) { say( 'ID# '.$id.': $crit == 0 , unless $reverse , $thresh < $nvalue , OK' ) if( $verbose > 2 ); $retval = $retval; }
+                if( $type eq "NV" ) {
+                    if      ( $thresh >= $nvalue ) { say( "\tID# ".$id.': $crit == 0 , unless $reverse , $thresh > $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
+                    elsif   ( $thresh < $nvalue ) { say( "\tID# ".$id.': $crit == 0 , unless $reverse , $thresh < $nvalue , OK' ) if( $verbose > 2 ); $retval = $retval; }
+                } else {
+                    if      ( $thresh >= $rvalue ) { say( "\tID# ".$id.': $crit == 0 , unless $reverse , $thresh > $rvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
+                    elsif   ( $thresh < $rvalue ) { say( "\tID# ".$id.': $crit == 0 , unless $reverse , $thresh < $rvalue , OK' ) if( $verbose > 2 ); $retval = $retval; }
+                }
             } else {
-                if      ( $thresh <= $nvalue ) { say( 'ID# '.$id.': $crit == 0 , if $reverse , $thresh < $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
-                elsif   ( $thresh > $nvalue ) { say( 'ID# '.$id.': $crit == 0 , if $reverse , $thresh > $nvalue , OK' ) if( $verbose > 2 ); $retval = $retval; }
+                if( $type eq "NV" ) {
+                    if      ( $thresh <= $nvalue ) { say( "\tID# ".$id.': $crit == 0 , if $reverse , $thresh < $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
+                    elsif   ( $thresh > $nvalue ) { say( "\tID# ".$id.': $crit == 0 , if $reverse , $thresh > $nvalue , OK' ) if( $verbose > 2 ); $retval = $retval; }
+                } else {
+                    if      ( $thresh <= $rvalue ) { say( "\tID# ".$id.': $crit == 0 , if $reverse , $thresh < $rvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
+                    elsif   ( $thresh > $rvalue ) { say( "\tID# ".$id.': $crit == 0 , if $reverse , $thresh > $rvalue , OK' ) if( $verbose > 2 ); $retval = $retval; }
+                }
             }
         } else {
             unless( $reverse ) {
-                if      ( $crit >= $nvalue ) { say( 'ID# '.$id.': $crit <> 0 , unless $reverse , $crit >= $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
-                elsif   ( $crit < $nvalue ) { say( 'ID# '.$id.': $crit <> 0 , unless $reverse , $crit < $nvalue , OK' ) if( $verbose > 2 ); $retval = $retval; }
+                if( $type eq "NV" ) {
+                    if      ( $crit >= $nvalue ) { say( "\tID# ".$id.': $crit <> 0 , unless $reverse , $crit >= $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
+                    elsif   ( $crit < $nvalue ) { say( "\tID# ".$id.': $crit <> 0 , unless $reverse , $crit < $nvalue , OK' ) if( $verbose > 2 ); $retval = $retval; }
+                } else {
+                    if      ( $crit >= $rvalue ) { say( "\tID# ".$id.': $crit <> 0 , unless $reverse , $crit >= $rvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
+                    elsif   ( $crit < $rvalue ) { say( "\tID# ".$id.': $crit <> 0 , unless $reverse , $crit < $rvalue , OK' ) if( $verbose > 2 ); $retval = $retval; }
+                }
             } else {
-                if      ( $crit <= $nvalue ) { say( 'ID# '.$id.': $crit <> 0 , if $reverse , $crit <= $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
-                elsif   ( $crit > $nvalue ) { say( 'ID# '.$id.': $crit <> 0 , if $reverse , $crit > $nvalue , OK' ) if( $verbose > 2 ); $retval = $retval; }
+                if( $type eq "NV" ) {
+                    if      ( $crit <= $nvalue ) { say( "\tID# ".$id.': $crit <> 0 , if $reverse , $crit <= $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
+                    elsif   ( $crit > $nvalue ) { say( "\tID# ".$id.': $crit <> 0 , if $reverse , $crit > $nvalue , OK' ) if( $verbose > 2 ); $retval = $retval; }
+                } else {
+                    if      ( $crit <= $rvalue ) { say( "\tID# ".$id.': $crit <> 0 , if $reverse , $crit <= $rvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
+                    elsif   ( $crit > $rvalue ) { say( "\tID# ".$id.': $crit <> 0 , if $reverse , $crit > $rvalue , OK' ) if( $verbose > 2 ); $retval = $retval; }
+                }
             }
         }
     } else {
-        say( 'ID# '.$id.": wasn't a warning so this value can never be a critical" ) if( $verbose > 2 );
+        say( "\tID# ".$id.": wasn't a warning so this value can never be a critical" ) if( $verbose > 2 );
     }
 
     return $retval;
@@ -289,7 +414,7 @@ sub validateResult {
     my $device  = shift;
     my $entry   = shift;
 
-    my $result = isBelowThreshhold( $entry->{'ID'}, $entry->{Value}, $entry->{Thresh}, $entry->{WarnVal}, $entry->{CritVal}, $entry->{CR} );
+    my $result = isBelowThreshhold( $entry->{'ID'}, $entry->{Value}, $entry->{RawValue}, $entry->{Thresh}, $entry->{WarnVal}, $entry->{CritVal}, $entry->{CR}, $entry->{WantedVal} );
     addResultInformation( $device, $entry, $result );
 }
 
@@ -313,7 +438,7 @@ sub pushToGlobal {
     push(
         @{$glob_result->{Devices}->{$device}->{$state}->{Message}},
         "#". $entry->{ID} ." - ". $entry->{AttribName} ." is [ ".
-        (( octStrToDec($entry->{Thresh}) eq "0" )
+        (( octStr2Dec($entry->{Thresh}) eq "0" )
             ? (( $entry->{WantedVal} eq "NV" ) ? $entry->{Value} : $entry->{RawValue}) ." ". (( $entry->{WarnVal} > 0 or $entry->{CritVal} > 0 ) ? "] - [ w: ". $entry->{WarnVal} .", c: ". $entry->{CritVal} ." ]" : "]" )
             : (( $entry->{WantedVal} eq "NV" ) ? $entry->{Value} : $entry->{RawValue}) ." / ". $entry->{Thresh} ." ". (( $entry->{WarnVal} > 0 or $entry->{CritVal} > 0 ) ? "] - [ w: ". $entry->{WarnVal} .", c: ". $entry->{CritVal} ." ]" : "]" )
         )
@@ -336,9 +461,7 @@ sub addResultInformation {
     my $result  = shift;
 
     my $devname  = $device;
-    $device = spcToUc($device);
-
-    #say( Dumper( $entry ) ) if DEBUG;
+    $device = spc2Uc($device);
 
     unless( exists $glob_result->{Devices}->{$device} ) {
         $glob_result->{Devices}->{$device}->{Controller}            = $entry->{Controller};
@@ -381,9 +504,9 @@ sub printResult {
                         ." OK ] - [ ". $_->{Warnings}
                         ." WARNING ] - [ ". $_->{Criticals}
                         ." CRITICAL ] - [ ". $_->{Unknowns}
-                        ." UNKNOWN ] in ".
-                        ( time() - $starttime )
-                        ."ms ( for details pls take a look in longoutput )";
+                        ." UNKNOWN ] in "
+                        .sprintf( "%.3f", (time() - $starttime) )
+                        ."s ( longoutput for details )";
     my $retval   = UNKNOWN;
 
     unless( $_->{Unknowns} > $_->{Oks} or
@@ -458,12 +581,8 @@ sub longOutputMsg {
         case UNKNOWN    { $state = "UNKNOWN:"; }
     }
 
-    #if( $state eq "WARNING:" ) {
-    #    say( Dumper( $_ ) );
-    #} 
-    
     return $state ." on ". (
-        ( defined $_->{Devices}->{$dev}->{Controller} )
+        ( defined $_->{Devices}->{$dev}->{Controller} and $_->{Devices}->{$dev}->{Controller} ne "unavailable" )
             ? ( $_->{Devices}->{$dev}->{Controller} ." - [ DeviceID ". $_->{Devices}->{$dev}->{DeviceID} ." ]" )
             : $_->{Devices}->{$dev}->{DevName}
     ) ." - ". $msg ."\n";
@@ -719,6 +838,8 @@ sub getDeviceFromCfg {
     my $result  = undef;
     my $found   = 0;
 
+	#say( Dumper( $dev ) ) if( DEBUG );
+
     if( defined $config ) {
         foreach my $e1 ( keys $config->{Devices} ) {
             foreach my $e2 ( keys $config->{Devices}->{$e1} ) {
@@ -840,6 +961,8 @@ sub getSmartOutput {
             IOException->throw( "can't execute \"". $path ."\" - possibly insufficient rights." );
         } else {
             open( $fh, "-|", ( $sudo ) ? "sudo ".$path." -a -d ".$wanted_dev : $path." -a -d ".$wanted_dev );
+            say( "EXECUTE: ". (( $sudo ) ? "sudo ".$path." -a -d ".$wanted_dev : $path." -a -d ".$wanted_dev) ) if( $verbose > 1 );
+            #open( $fh, "-|", ( $sudo ) ? "sudo ".$path." -a ".$wanted_dev : $path." -a ".$wanted_dev );
             if( ($? >> 8) & 2 ) {
                 say( "Error: smartctl returned \"No such device\" for device \"". $wanted_dev ."\"" );
                 exit UNKNOWN;
@@ -865,6 +988,33 @@ sub getSmartOutput {
     close( $fh ) if( defined $fh );
     return @out;
 }
+
+
+# ===================== MODULES ==============================
+
+package log;
+
+###########################
+sub info {
+###########################
+}
+
+
+###########################
+sub debug {
+###########################
+}
+
+
+###########################
+sub error {
+###########################
+}
+
+
+# ===================== FUNCTIONS ============================
+
+package main;
 
 ###########################
 sub help {

@@ -93,7 +93,45 @@
                 { "242": "NV", "CR" : 0, "Name" : "Total_LBAs_Read" },
                 { "249": "NV", "CR" : 0, "Name" : "Total_NAND_Writes" }
 			]
-		}
+		},
+		"Samsung SSD 840 Series" : {
+			"Device" : ["Samsung SSD 840 Series"],
+			"ID#": [
+				{ "5" : "NV", "CR" : 0, "Name" : "Reallocated_Sector_Ct" },
+				{ "9" : "NV", "CR" : 0, "Name" : "Power_On_Hours" },
+				{ "12" : "NV", "CR" : 0, "Name" : "Power_Cycle_Count" },
+				{ "177" : "NV", "CR" : 0, "Name" : "Wear_Leveling_Count" },
+				{ "179" : "NV", "CR" : 0, "Name" : "Used_Rsvd_Blk_Cnt_Tot" },
+				{ "181" : "NV", "CR" : 0, "Name" : "Program_Fail_Cnt_Total" },
+				{ "182" : "NV", "CR" : 0, "Name" : "Erase_Fail_Count_Total" },
+				{ "183" : "NV", "CR" : 0, "Name" : "Runtime_Bad_Block" },
+				{ "187" : "NV", "CR" : 0, "Name" : "Uncorrectable_Error_Cnt" },
+				{ "190" : "RV", "CR" : 0, "Name" : "Airflow_Temperature_Cel" },
+				{ "195" : "NV", "CR" : 0, "Name" : "ECC_Error_Rate" },
+				{ "199" : "NV", "CR" : 0, "Name" : "CRC_Error_Count" },
+				{ "235" : "NV", "CR" : 0, "Name" : "POR_Recovery_Count" },
+				{ "241" : "NV", "CR" : 0, "Name" : "Total_LBAs_Written" }
+			]
+		},
+        "Samsung SSD 850 EVO 120GB": {
+            "Device" : ["Samsung SSD 850 EVO 120GB"],
+            "ID#": [
+                { "5" : "NV", "CR" : 0, "Name" : "Reallocated_Sector_Ct" },
+                { "9" : "NV", "CR" : 0, "Name" : "Power_On_Hours" },
+                { "12" : "NV", "CR" : 0, "Name" : "Power_Cycle_Count" },
+                { "177" : "RV", "CR" : 1, "Name" : "Wear_Leveling_Count" },
+                { "179" : "NV", "CR" : 0, "Name" : "Used_Rsvd_Blk_Cnt_Tot" },
+                { "181" : "NV", "CR" : 0, "Name" : "Program_Fail_Cnt_Total" },
+                { "182" : "NV", "CR" : 0,  "Name" : "Erase_Fail_Count_Total" },
+                { "183" : "NV", "CR" : 0, "Name" : "Runtime_Bad_Block" },
+                { "187" : "NV", "CR" : 0, "Name" : "Reported_Uncorrect" },
+                { "190" : "RV", "CR" : 0, "Name" : "Airflow_Temperature_Cel" },
+                { "195" : "NV", "CR" : 0, "Name" : "Hardware_ECC_Recovered" },
+                { "199" : "NV", "CR" : 0, "Name" : "UDMA_CRC_Error_Count" },
+                { "235" : "NV", "CR" : 0, "Name" : "Unknown_Attribute" },
+                { "241" : "NV", "CR" : 0, "Name" : "Total_LBAs_Written" }
+            ]
+        }
     }
 }
 
