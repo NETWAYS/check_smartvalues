@@ -8,11 +8,11 @@ type: Grapher,Plugin
 license: GPLv2+
 releases: 
   -
-    name: 0.3
-    description: "0.3 - Release/w Bugfixes and Features"
+    name: 0.4
+    description: "0.4 - Release/w Bugfixes and Features"
     files:
       -
         name: check_smartvalues.tar.bz2
         url: "file:///check_smartvalues.tar.bz2"
         description: "The entire bundle with all files you need, to get them up and running."
-        checksum: 20ef5735babf53d19599e656130244d5 
+		checksum: 1a271b4a9038e073d5c008eefdfa3ab2
