@@ -1,19 +1,49 @@
 {
-    "Controller" : [
-        { "ID" : "megaraid",    "RE" : "megaraid,(\\d+)\\s+.*", "ShortName" : "LSI MegaRAID" },
-        { "ID" : "3ware",       "RE" : "3ware,(\\d+)\\s+.*",    "ShortName" : "3ware RAID" },
-        { "ID" : "areca",       "RE" : "areca,(\\d+)\\s+.*",    "ShortName" : "Areca SATA RAID" },
-        { "ID" : "cciss",       "RE" : "cciss,(\\d+)\\s+.*",    "ShortName" : "cciss RAID"  },
-        { "ID" : "hpt",         "RE" : "hpt,(\\d+)\\s+.*",      "ShortName" : "HighPoint RocketRAID" }
-    ],
-    "Devices" : {
-        "DEMO DEVICE" : {
-            "Device" : [ "IDENTIFIER" ],
-            "ID#" : [
-                { "1" : "RV", "CR": 0, "Name" : "Attribute 1", "Desc" : "does this" },
-                { "2" : "NV", "CR": 1, "Name" : "Attribute 2", "Desc" : "does that" }
-            ]
-        }, 
+		"Controller" : [
+			{ "ID" : "megaraid",    "RE" : "megaraid,(\\d+)\\s+.*", "ShortName" : "LSI MegaRAID" },
+			{ "ID" : "3ware",       "RE" : "3ware,(\\d+)\\s+.*",    "ShortName" : "3ware RAID" },
+			{ "ID" : "areca",       "RE" : "areca,(\\d+)\\s+.*",    "ShortName" : "Areca SATA RAID" },
+			{ "ID" : "cciss",       "RE" : "cciss,(\\d+)\\s+.*",    "ShortName" : "cciss RAID"  },
+			{ "ID" : "hpt",         "RE" : "hpt,(\\d+)\\s+.*",      "ShortName" : "HighPoint RocketRAID" }
+		],
+		"Devices" : {
+			"DEMO DEVICE" : {
+				"Device" : [ "IDENTIFIER" ],
+				"ID#" : [
+					{ "1" : "RV", "CR": 0, "Name" : "Attribute 1", "Desc" : "does this" },
+					{ "2" : "NV", "CR": 1, "Name" : "Attribute 2", "Desc" : "does that" }
+				]
+		},
+		"Intel S3700" : {
+			"Device" : [ "INTEL SSDSC2BA100G3" ],
+			"ID#" : [
+				{ "5" : "NV", "CR" : 0, "Name" : "Reallocated_Sector_Ct" },
+				{ "9" : "NV", "CR" : 0, "Name" : "Power_On_Hours" },
+				{ "12" : "NV", "CR" : 0, "Name" : "Power_Cycle_Count" },
+				{ "170" : "NV", "CR" : 0, "Name" : "Unknown_Attribute" },
+				{ "171" : "NV", "CR" : 0, "Name" : "Unknown_Attribute" },
+				{ "172" : "NV", "CR" : 0, "Name" : "Unknown_Attribute" },
+				{ "174" : "NV", "CR" : 0, "Name" : "Unknown_Attribute" },
+				{ "175" : "NV", "CR" : 0, "Name" : "Program_Fail_Count_Chip" },
+				{ "183" : "NV", "CR" : 0, "Name" : "Runtime_Bad_Block" },
+				{ "184" : "NV", "CR" : 0, "Name" : "End-to-End_Error" },
+				{ "187" : "NV", "CR" : 0, "Name" : "Reported_Uncorrect" },
+				{ "190" : "RV", "CR" : 0, "Name" : "Airflow_Temperature_Cel" },
+				{ "192" : "NV", "CR" : 0, "Name" : "Power-Off_Retract_Count" },
+				{ "194" : "RV", "CR" : 0, "Name" : "Temperature_Celsius" },
+				{ "197" : "NV", "CR" : 0, "Name" : "Current_Pending_Sector" },
+				{ "199" : "NV", "CR" : 0, "Name" : "UDMA_CRC_Error_Count" },
+				{ "225" : "NV", "CR" : 0, "Name" : "Load_Cycle_Count" },
+				{ "226" : "NV", "CR" : 0, "Name" : "Load-in_Time" },
+				{ "227" : "NV", "CR" : 0, "Name" : "Torq-amp_Count" },
+				{ "228" : "NV", "CR" : 0, "Name" : "Power-off_Retract_Count" },
+				{ "232" : "NV", "CR" : 0, "Name" : "Available_Reservd_Space" },
+				{ "233" : "NV", "CR" : 0, "Name" : "Media_Wearout_Indicator" },
+				{ "234" : "NV", "CR" : 0, "Name" : "Unknown_Attribute" },
+				{ "241" : "NV", "CR" : 0, "Name" : "Total_LBAs_Written" },
+				{ "242" : "NV", "CR" : 0, "Name" : "Total_LBAs_Read" }
+			]
+		},
 		"Intel 320" : {
 			"Device" : [ "Intel 320 Series SSDs", "INTEL SSDSA2CW160G3", "INTEL SSDSA2CT040G3" ],
 			"ID#" : [
@@ -43,55 +73,113 @@
 				{ "5" : "NV", "CR" : 0, "Name" : "Reallocated_sector_count", "Desc" : "" },
 				{ "9" : "NV", "CR" : 1, "Name" : "Power_on_hours" },
 				{ "12": "NV", "CR" : 0, "Name" : "Power-cycle_counts" },
-                { "170": "NV", "CR" : 0, "Name" : "Available_Reserved_Space" },
-                { "171": "NV", "CR" : 0, "Name" : "Program_Fail_Count" },
-                { "172": "NV", "CR" : 0, "Name" : "Erase_Fail_Count" },
-                { "174": "NV", "CR" : 0, "Name" : "Unexpected_Power_Loss" },
-                { "183": "NV", "CR" : 0, "Name" : "SATA-Downshift_Count" },
-                { "184" : "NV", "CR" : 0, "Name" : "End-to-End_Error_Detection" },
+				{ "170": "NV", "CR" : 0, "Name" : "Available_Reserved_Space" },
+				{ "171": "NV", "CR" : 0, "Name" : "Program_Fail_Count" },
+				{ "172": "NV", "CR" : 0, "Name" : "Erase_Fail_Count" },
+				{ "174": "NV", "CR" : 0, "Name" : "Unexpected_Power_Loss" },
+				{ "183": "NV", "CR" : 0, "Name" : "SATA-Downshift_Count" },
+				{ "184" : "NV", "CR" : 0, "Name" : "End-to-End_Error_Detection" },
 				{ "187" : "NV", "CR" : 0, "Name" : "Uncorrectable-Error_Count" },
 				{ "190" : "RV", "CR" : 0, "Name" : "Temperature_case" },
-                { "192": "NV", "CR" : 0, "Name" : "Power-Off_Retract_Count_(Unsafe_Shutdown_Count)" },
-                { "194" : "RV", "CR" : 0, "Name" : "Temperature_device" },
-                { "199": "NV", "CR" : 0, "Name" : "CRC-Error_Count" },
-                { "225": "NV", "CR" : 0, "Name" : "Host_Writes" },
-                { "226": "NV", "CR" : 0, "Name" : "Timed_Workload_Media_Wear" },
-                { "227": "NV", "CR" : 0, "Name" : "Timed_Workload_Host_Read/Write _Ratio" },
-                { "228": "NV", "CR" : 0, "Name" : "Power-off_Retract_Count" },
-                { "232" : "NV", "CR" : 0, "Name" : "Available_Reserved_Space" },
+				{ "192": "NV", "CR" : 0, "Name" : "Power-Off_Retract_Count_(Unsafe_Shutdown_Count)" },
+				{ "194" : "RV", "CR" : 0, "Name" : "Temperature_device" },
+				{ "199": "NV", "CR" : 0, "Name" : "CRC-Error_Count" },
+				{ "225": "NV", "CR" : 0, "Name" : "Host_Writes" },
+				{ "226": "NV", "CR" : 0, "Name" : "Timed_Workload_Media_Wear" },
+				{ "227": "NV", "CR" : 0, "Name" : "Timed_Workload_Host_Read/Write _Ratio" },
+				{ "228": "NV", "CR" : 0, "Name" : "Power-off_Retract_Count" },
+				{ "232" : "NV", "CR" : 0, "Name" : "Available_Reserved_Space" },
 				{ "233" : "NV", "CR" : 0, "Name" : "Media_Wearout_Indicator" },
-                { "241": "NV", "CR" : 0, "Name" : "Total_LBAs_Written" },
-                { "242": "NV", "CR" : 0, "Name" : "Total_LBAs_Read" },
-                { "249": "NV", "CR" : 0, "Name" : "Total_NAND_Writes" }
+				{ "241": "NV", "CR" : 0, "Name" : "Total_LBAs_Written" },
+				{ "242": "NV", "CR" : 0, "Name" : "Total_LBAs_Read" },
+				{ "249": "NV", "CR" : 0, "Name" : "Total_NAND_Writes" }
 			]
 		},
 		"Intel SSD DC S3500 Series" : {
-			"Device" : ["INTEL SSDSC2BB480G4"],
+			"Device" : ["INTEL SSDSC2BB480G4", "INTEL SSDSC2BB240G4"],
 			"ID#" : [
 				{ "5" : "NV", "CR" : 0, "Name" : "Reallocated_sector_count", "Desc" : "" },
 				{ "9" : "NV", "CR" : 0, "Name" : "Power_on_hours" },
 				{ "12": "NV", "CR" : 0, "Name" : "Power-cycle_counts" },
-                { "170": "NV", "CR" : 0, "Name" : "Available_Reserved_Space" },
-                { "171": "NV", "CR" : 0, "Name" : "Program_Fail_Count" },
-                { "172": "NV", "CR" : 0, "Name" : "Erase_Fail_Count" },
-                { "174": "NV", "CR" : 0, "Name" : "Unexpected_Power_Loss" },
-                { "183": "NV", "CR" : 0, "Name" : "SATA-Downshift_Count" },
-                { "184" : "NV", "CR" : 0, "Name" : "End-to-End_Error_Detection" },
+				{ "170": "NV", "CR" : 0, "Name" : "Available_Reserved_Space" },
+				{ "171": "NV", "CR" : 0, "Name" : "Program_Fail_Count" },
+				{ "172": "NV", "CR" : 0, "Name" : "Erase_Fail_Count" },
+				{ "174": "NV", "CR" : 0, "Name" : "Unexpected_Power_Loss" },
+				{ "183": "NV", "CR" : 0, "Name" : "SATA-Downshift_Count" },
+				{ "184" : "NV", "CR" : 0, "Name" : "End-to-End_Error_Detection" },
 				{ "187" : "NV", "CR" : 0, "Name" : "Uncorrectable-Error_Count" },
 				{ "190" : "RV", "CR" : 0, "Name" : "Temperature_case" },
-                { "192": "NV", "CR" : 0, "Name" : "Power-Off_Retract_Count_(Unsafe_Shutdown_Count)" },
-                { "194" : "RV", "CR" : 0, "Name" : "Temperature_device" },
-                { "199": "NV", "CR" : 0, "Name" : "CRC-Error_Count" },
-                { "225": "NV", "CR" : 0, "Name" : "Host_Writes" },
-                { "226": "NV", "CR" : 0, "Name" : "Timed_Workload_Media_Wear" },
-                { "227": "NV", "CR" : 0, "Name" : "Timed_Workload_Host_Read/Write _Ratio" },
-                { "228": "NV", "CR" : 0, "Name" : "Power-off_Retract_Count" },
-                { "232" : "NV", "CR" : 0, "Name" : "Available_Reserved_Space" },
+				{ "192": "NV", "CR" : 0, "Name" : "Power-Off_Retract_Count_(Unsafe_Shutdown_Count)" },
+				{ "194" : "RV", "CR" : 0, "Name" : "Temperature_device" },
+				{ "199": "NV", "CR" : 0, "Name" : "CRC-Error_Count" },
+				{ "225": "NV", "CR" : 0, "Name" : "Host_Writes" },
+				{ "226": "NV", "CR" : 0, "Name" : "Timed_Workload_Media_Wear" },
+				{ "227": "NV", "CR" : 0, "Name" : "Timed_Workload_Host_Read/Write _Ratio" },
+				{ "228": "NV", "CR" : 0, "Name" : "Power-off_Retract_Count" },
+				{ "232" : "NV", "CR" : 0, "Name" : "Available_Reserved_Space" },
 				{ "233" : "NV", "CR" : 0, "Name" : "Media_Wearout_Indicator" },
-                { "234" : "NV", "CR" : 0, "Name" : "Average_erase_count_AND_Maximum_Erase_Count" },
-                { "241": "NV", "CR" : 0, "Name" : "Total_LBAs_Written" },
-                { "242": "NV", "CR" : 0, "Name" : "Total_LBAs_Read" },
-                { "249": "NV", "CR" : 0, "Name" : "Total_NAND_Writes" }
+				{ "234" : "NV", "CR" : 0, "Name" : "Average_erase_count_AND_Maximum_Erase_Count" },
+				{ "241": "NV", "CR" : 0, "Name" : "Total_LBAs_Written" },
+				{ "242": "NV", "CR" : 0, "Name" : "Total_LBAs_Read" },
+				{ "249": "NV", "CR" : 0, "Name" : "Total_NAND_Writes" }
+			]
+		},
+		"Intel SSD DC S3510 Series" : {
+			"Device" : ["INTEL SSDSC2BB120G6"],
+			"ID#" : [
+				{ "5" : "NV", "CR" : 0, "Name" : "Reallocated_sector_count", "Desc" : "" },
+				{ "9" : "NV", "CR" : 0, "Name" : "Power_on_hours" },
+				{ "12": "NV", "CR" : 0, "Name" : "Power-cycle_counts" },
+				{ "170": "NV", "CR" : 0, "Name" : "Available_Reserved_Space" },
+				{ "171": "NV", "CR" : 0, "Name" : "Program_Fail_Count" },
+				{ "172": "NV", "CR" : 0, "Name" : "Erase_Fail_Count" },
+				{ "174": "NV", "CR" : 0, "Name" : "Unexpected_Power_Loss" },
+				{ "183": "NV", "CR" : 0, "Name" : "SATA-Downshift_Count" },
+				{ "184" : "NV", "CR" : 0, "Name" : "End-to-End_Error_Detection" },
+				{ "187" : "NV", "CR" : 0, "Name" : "Uncorrectable-Error_Count" },
+				{ "190" : "RV", "CR" : 0, "Name" : "Temperature_case" },
+				{ "192": "NV", "CR" : 0, "Name" : "Power-Off_Retract_Count_(Unsafe_Shutdown_Count)" },
+				{ "194" : "RV", "CR" : 0, "Name" : "Temperature_device" },
+				{ "199": "NV", "CR" : 0, "Name" : "CRC-Error_Count" },
+				{ "225": "NV", "CR" : 0, "Name" : "Host_Writes" },
+				{ "226": "NV", "CR" : 0, "Name" : "Timed_Workload_Media_Wear" },
+				{ "227": "NV", "CR" : 0, "Name" : "Timed_Workload_Host_Read/Write _Ratio" },
+				{ "228": "NV", "CR" : 0, "Name" : "Power-off_Retract_Count" },
+				{ "232" : "NV", "CR" : 0, "Name" : "Available_Reserved_Space" },
+				{ "233" : "NV", "CR" : 0, "Name" : "Media_Wearout_Indicator" },
+				{ "234" : "NV", "CR" : 0, "Name" : "Average_erase_count_AND_Maximum_Erase_Count" },
+				{ "241": "NV", "CR" : 0, "Name" : "Total_LBAs_Written" },
+				{ "242": "NV", "CR" : 0, "Name" : "Total_LBAs_Read" },
+				{ "249": "NV", "CR" : 0, "Name" : "Total_NAND_Writes" }
+			]
+		},
+		"Intel SSD DC S3700 Series" : {
+			"Device" : ["INTEL SSDSC2BA400G3"],
+			"ID#" : [
+				{ "5" : "NV", "CR" : 0, "Name" : "Reallocated_sector_count", "Desc" : "" },
+				{ "9" : "NV", "CR" : 0, "Name" : "Power_on_hours" },
+				{ "12": "NV", "CR" : 0, "Name" : "Power-cycle_counts" },
+				{ "170": "NV", "CR" : 0, "Name" : "Available_Reserved_Space" },
+				{ "171": "NV", "CR" : 0, "Name" : "Program_Fail_Count" },
+				{ "172": "NV", "CR" : 0, "Name" : "Erase_Fail_Count" },
+				{ "174": "NV", "CR" : 0, "Name" : "Unexpected_Power_Loss" },
+				{ "183": "NV", "CR" : 0, "Name" : "SATA-Downshift_Count" },
+				{ "184" : "NV", "CR" : 0, "Name" : "End-to-End_Error_Detection" },
+				{ "187" : "NV", "CR" : 0, "Name" : "Uncorrectable-Error_Count" },
+				{ "190" : "RV", "CR" : 0, "Name" : "Temperature_case" },
+				{ "192": "NV", "CR" : 0, "Name" : "Power-Off_Retract_Count_(Unsafe_Shutdown_Count)" },
+				{ "194" : "RV", "CR" : 0, "Name" : "Temperature_device" },
+				{ "199": "NV", "CR" : 0, "Name" : "CRC-Error_Count" },
+				{ "225": "NV", "CR" : 0, "Name" : "Host_Writes" },
+				{ "226": "NV", "CR" : 0, "Name" : "Timed_Workload_Media_Wear" },
+				{ "227": "NV", "CR" : 0, "Name" : "Timed_Workload_Host_Read/Write _Ratio" },
+				{ "228": "NV", "CR" : 0, "Name" : "Power-off_Retract_Count" },
+				{ "232" : "NV", "CR" : 0, "Name" : "Available_Reserved_Space" },
+				{ "233" : "NV", "CR" : 0, "Name" : "Media_Wearout_Indicator" },
+				{ "234" : "NV", "CR" : 0, "Name" : "Average_erase_count_AND_Maximum_Erase_Count" },
+				{ "241": "NV", "CR" : 0, "Name" : "Total_LBAs_Written" },
+				{ "242": "NV", "CR" : 0, "Name" : "Total_LBAs_Read" },
+				{ "249": "NV", "CR" : 0, "Name" : "Total_NAND_Writes" }
 			]
 		},
 		"Samsung SSD 840 Series" : {
@@ -113,25 +201,70 @@
 				{ "241" : "NV", "CR" : 0, "Name" : "Total_LBAs_Written" }
 			]
 		},
-        "Samsung SSD 850 EVO 120GB": {
-            "Device" : ["Samsung SSD 850 EVO 120GB"],
-            "ID#": [
-                { "5" : "NV", "CR" : 0, "Name" : "Reallocated_Sector_Ct" },
-                { "9" : "NV", "CR" : 0, "Name" : "Power_On_Hours" },
-                { "12" : "NV", "CR" : 0, "Name" : "Power_Cycle_Count" },
-                { "177" : "RV", "CR" : 1, "Name" : "Wear_Leveling_Count" },
-                { "179" : "NV", "CR" : 0, "Name" : "Used_Rsvd_Blk_Cnt_Tot" },
-                { "181" : "NV", "CR" : 0, "Name" : "Program_Fail_Cnt_Total" },
-                { "182" : "NV", "CR" : 0,  "Name" : "Erase_Fail_Count_Total" },
-                { "183" : "NV", "CR" : 0, "Name" : "Runtime_Bad_Block" },
-                { "187" : "NV", "CR" : 0, "Name" : "Reported_Uncorrect" },
-                { "190" : "RV", "CR" : 0, "Name" : "Airflow_Temperature_Cel" },
-                { "195" : "NV", "CR" : 0, "Name" : "Hardware_ECC_Recovered" },
-                { "199" : "NV", "CR" : 0, "Name" : "UDMA_CRC_Error_Count" },
-                { "235" : "NV", "CR" : 0, "Name" : "Unknown_Attribute" },
-                { "241" : "NV", "CR" : 0, "Name" : "Total_LBAs_Written" }
-            ]
-        }
-    }
+		"Samsung SSD 850 EVO 120GB": {
+			"Device" : ["Samsung SSD 850 EVO 120GB"],
+			"ID#": [
+				{ "5" : "NV", "CR" : 0, "Name" : "Reallocated_Sector_Ct" },
+				{ "9" : "NV", "CR" : 0, "Name" : "Power_On_Hours" },
+				{ "12" : "NV", "CR" : 0, "Name" : "Power_Cycle_Count" },
+				{ "177" : "RV", "CR" : 1, "Name" : "Wear_Leveling_Count" },
+				{ "179" : "NV", "CR" : 0, "Name" : "Used_Rsvd_Blk_Cnt_Tot" },
+				{ "181" : "NV", "CR" : 0, "Name" : "Program_Fail_Cnt_Total" },
+				{ "182" : "NV", "CR" : 0,  "Name" : "Erase_Fail_Count_Total" },
+				{ "183" : "NV", "CR" : 0, "Name" : "Runtime_Bad_Block" },
+				{ "187" : "NV", "CR" : 0, "Name" : "Reported_Uncorrect" },
+				{ "190" : "RV", "CR" : 0, "Name" : "Airflow_Temperature_Cel" },
+				{ "195" : "NV", "CR" : 0, "Name" : "Hardware_ECC_Recovered" },
+				{ "199" : "NV", "CR" : 0, "Name" : "UDMA_CRC_Error_Count" },
+				{ "235" : "NV", "CR" : 0, "Name" : "Power_Recovery_Count" },
+				{ "241" : "NV", "CR" : 0, "Name" : "Total_LBAs_Written" }
+			]
+		},
+		"Samsung SSD 850 EVO 500GB": {
+			"Device" : ["Samsung SSD 850 EVO 500GB"],
+			"ID#": [
+				{ "5" : "NV", "CR" : 0, "Name" : "Reallocated_Sector_Ct" },
+				{ "9" : "NV", "CR" : 0, "Name" : "Power_On_Hours" },
+				{ "12" : "NV", "CR" : 0, "Name" : "Power_Cycle_Count" },
+				{ "177" : "RV", "CR" : 1, "Name" : "Wear_Leveling_Count" },
+				{ "179" : "NV", "CR" : 0, "Name" : "Used_Rsvd_Blk_Cnt_Tot" },
+				{ "181" : "NV", "CR" : 0, "Name" : "Program_Fail_Cnt_Total" },
+				{ "182" : "NV", "CR" : 0,  "Name" : "Erase_Fail_Count_Total" },
+				{ "183" : "NV", "CR" : 0, "Name" : "Runtime_Bad_Block" },
+				{ "187" : "NV", "CR" : 0, "Name" : "Reported_Uncorrect" },
+				{ "190" : "RV", "CR" : 0, "Name" : "Airflow_Temperature_Cel" },
+				{ "195" : "NV", "CR" : 0, "Name" : "Hardware_ECC_Recovered" },
+				{ "199" : "NV", "CR" : 0, "Name" : "UDMA_CRC_Error_Count" },
+				{ "235" : "NV", "CR" : 0, "Name" : "Power_Recovery_Count" },
+				{ "241" : "NV", "CR" : 0, "Name" : "Total_LBAs_Written" }
+			]
+		},
+		"Samsung Enterprise (PM863,PM853T)": {
+			"Device" : ["SAMSUNG MZ7LM240HCGR-00003", "SAMSUNG MZ7GE480HMHP-00003", "SAMSUNG MZ7GE240HMGR-00003"],
+			"ID#": [
+				{ "5" : "NV", "CR" : 0, "Name" : "Reallocated_Sector_Ct" },
+				{ "9" : "NV", "CR" : 0, "Name" : "Power_On_Hours" },
+				{ "12" : "NV", "CR" : 0, "Name" : "Power_Cycle_Count" },
+				{ "177" : "RV", "CR" : 1, "Name" : "Wear_Leveling_Count" },
+				{ "179" : "NV", "CR" : 0, "Name" : "Used_Rsvd_Blk_Cnt_Tot" },
+				{ "181" : "NV", "CR" : 0, "Name" : "Program_Fail_Cnt_Total" },
+				{ "182" : "NV", "CR" : 0,  "Name" : "Erase_Fail_Count_Total" },
+				{ "183" : "NV", "CR" : 0, "Name" : "Runtime_Bad_Block" },
+				{ "187" : "NV", "CR" : 0, "Name" : "Reported_Uncorrect" },
+				{ "190" : "RV", "CR" : 0, "Name" : "Airflow_Temperature_Cel" },
+				{ "195" : "NV", "CR" : 0, "Name" : "Hardware_ECC_Recovered" },
+				{ "199" : "NV", "CR" : 0, "Name" : "UDMA_CRC_Error_Count" },
+				{ "202" : "NV", "CR" : 0, "Name" : "SSD_Mode_Status" },
+				{ "235" : "NV", "CR" : 0, "Name" : "Power_Recovery_Count" },
+				{ "241" : "NV", "CR" : 0, "Name" : "Total_LBAs_Written" },
+				{ "243" : "NV", "CR" : 0, "Name" : "Unknown" },
+				{ "244" : "NV", "CR" : 0, "Name" : "Unknown" },
+				{ "245" : "NV", "CR" : 0, "Name" : "Unknown" },
+				{ "246" : "NV", "CR" : 0, "Name" : "Unknown" },
+				{ "247" : "NV", "CR" : 0, "Name" : "Unknown" },
+				{ "251" : "NV", "CR" : 0, "Name" : "Unknown" }
+			]
+		}
+	}
 }
 

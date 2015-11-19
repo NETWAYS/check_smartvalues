@@ -6,56 +6,57 @@
  | |     Check S.M.A.R.T. Values                                                  | |
  | |     Author: Enrico Labedzki <enrico.labedzki@netways.de>                     | |
  | |                                                                              | |
- | |     NETWAYS GmbH, www.netways.de, info@netways.de 2014                       | |
+ | |     NETWAYS GmbH, www.netways.de, info@netways.de 2014 - 2015                | |
  | |     License: GPLv2                                                           | |
  | |     http://www.gnu.org/licenses/gpl-2.0.html                                 | |
  | +------------------------------------------------------------------------------+ |
  +----------------------------------------------------------------------------------+
 
- for details see README.md in project directory or use the --help switch for usage examples
+ for details see README.md in project directory or use the --help switch for usage
 =cut
 
-#BEGIN {
-#    my $mods = [
-#        'Switch',
-#        'File::Basename',
-#        'Getopt::Long',
-#        'JSON::XS',
-#        'Text::Trim',
-#        'Time::HiRes',
-#        'Try::Tiny',
-#        'Scalar::Util',
-#        'Exception::Class',
-#        'Data::Dumper'
-#    ];
-#
-#    my $unavail = [];
-#    
-#    foreach my $modul ( @{$mods} ) {
-#        eval( "use ".$modul );
-#        if( $@ ) {
-#            push( @{$unavail}, $modul );
-#        }
-#    }
-#
-#    if( @{$unavail} > 0 ) {
-#        $_ = join( "\n\t", @{$unavail} );
-#        print "This CheckCommand needs the following PerlModules installed on your System:\n\n\t".$_."\n\n";
-#        exit 1;
-#    }
-#}
+BEGIN {
+    my $mods = [
+        'Switch',
+        'File::Basename',
+        'Getopt::Long',
+        'JSON::XS',
+        'Text::Trim',
+        'Time::HiRes',
+        'Try::Tiny',
+        'Scalar::Util',
+        'Exception::Class',
+        'Data::Dumper',
+		'Config'
+    ];
 
-use 5.014000;
+    my $unavail = [];
+    
+    foreach my $modul ( @{$mods} ) {
+        eval( "use ".$modul );
+        if( $@ ) {
+            push( @{$unavail}, $modul );
+        }
+    }
+
+    if( @{$unavail} > 0 ) {
+        $_ = join( "\n\t", @{$unavail} );
+        print "This CheckCommand needs the following PerlModules installed on your System:\n\n\t".$_."\n\n";
+        exit 1;
+    }
+}
+
+use 5.010001;
 use strict;
 use warnings;
 use feature			qw( say );
-use Config;
 
-use Switch;
-use JSON::XS;
-use Text::Trim;
-use Try::Tiny;
-use Scalar::Util;
+#use Config;
+#use Switch;
+#use JSON::XS;
+#use Text::Trim;
+#use Try::Tiny;
+#use Scalar::Util;
 
 use File::Basename	qw( basename );
 use Getopt::Long	qw( :config no_ignore_case );
@@ -78,10 +79,10 @@ use constant {
 	UNKNOWN		=> 3
 };
 
-no Data::Dumper;
+no Data::Dumper; # unload it
 
 if( DEBUG ) {
-    use Data::Dumper;
+    use Data::Dumper; # load if needed
 }
 
 # ====================== SANITY ==============================
@@ -94,11 +95,13 @@ my $database	= undef;
 my $config		= undef;
 my $sudo		= 0;
 my $verbose		= 0;
+my $deviceinfo	= 0;
+my $hasraid		= 0;
 my $starttime   = time();
 my $duration    = 0;
 
-my $json		= 0;
-my $yaml		= 0;
+my $json		= 0;	# reserved
+my $yaml		= 0;	# reserved
 
 GetOptions(
 	'h|help'		=> \$help,
@@ -109,30 +112,40 @@ GetOptions(
 	's|sudo'		=> \$sudo,
 	'v|verbose'		=> \$verbose,
     'pd|perfdata'   => \$perfdata,
+	'di|deviceinfo'	=> \$deviceinfo,
+	'r|raid'		=> \$hasraid,
 	'vv'			=> sub { $verbose = 2; },
 	'vvv'			=> sub { $verbose = 3; },
-	'j|json'		=> \$json,
-	'y|yaml'		=> \$yaml
+	'j|json'		=> \$json,	# not yet implemented
+	'y|yaml'		=> \$yaml	# not yet implemented
 );
 
 if( getpwuid $> ne "root" and $sudo == 0 ) {
-    say( "can only be run as root user or with switch -s for sudo privileged user." );
+    say( "can only be run as root user or with switch -s for sudo privileged users like (nagios|icinga)." );
     exit UNKNOWN;
 }
 
 if( $help ) {
     help();
+	exit UNKNOWN;
 } else {
 	unless( defined $path and defined $database and @device > 0 ) {
-        say( "Usage: ". basename( $0 ) ."
-                -p or --path=/path/to/smartctl ( only if needed )
-                -d or --device=\"/dev/sdc\" ( REQUIRED )
-                -db or --database=/path/to/check_smartvalues.db.json ( REQUIRED )
-                -c or --config=/path/to/check_smartvalues.conf.json ( REQUIRED )
-                -s or --sudo ( defaults to nosudo )
-                -v or -vv or -vvv ( verbosity level )
-                -h or --help ( a better brief description )
-            \n" );
+		$_ = basename( $0 );
+		my $usage = <<"HDOC";
+Usage: $_
+    -p  or --path=/path/to/smartctl    - ( only if needed )
+    -d  or --device="/dev/sdc"         - ( REQUIRED )
+    -r  or --raid                      - ( only required when your device is behind a raid controller )
+    -db or --database=/path/to/check_smartvalues.db.json ( REQUIRED )
+    -c  or --config=/path/to/check_smartvalues.conf.json ( REQUIRED )
+    -pd or --perfdata                  - ( OPTIONAL ) when you need some statistics
+    -di or --deviceinfo                - ( OPTIONAL ) adding some device informations to longoutput
+    -s  or --sudo                      - ( defaults to nosudo )
+    -v  or -vv or -vvv                 - ( verbosity level )
+    -h  or --help                      - ( a better brief description )
+HDOC
+
+		say( $usage );
 		exit UNKNOWN;
 	}
 }
@@ -175,7 +188,7 @@ my $glob_result = {
     "Devices"   => {}
 };
 
-my ($smart_model, $smart_attr) = getSmartCtlVersion();
+my ($smart_model, $smart_attr) = getSmartCtlVersion(); # currently not in use, but he prints the version in verbose mode
 
 # ======================= MAIN ===============================
 foreach my $dev ( @device ) { # once per device
@@ -203,8 +216,8 @@ foreach my $dev ( @device ) { # once per device
 				}
 
             	foreach ( @result ) {
-                	$_->{Controller}    = ( $tracked_dev->{Controller} ) ? $tracked_dev->{Controller} : "unavailable";
-                	$_->{DeviceID}      = ( $tracked_dev->{DeviceID} ) ? $tracked_dev->{DeviceID} : "unavailable";
+                	$_->{Controller}    = ( $tracked_dev->{Controller} )	? $tracked_dev->{Controller}	: "unavailable";
+                	$_->{DeviceID}      = ( $tracked_dev->{DeviceID} )		? $tracked_dev->{DeviceID}		: "unavailable";
                 	printEntry( $_ ) if( $verbose > 2 );
                 	validateResult( $dev, $_ );
             	}
@@ -220,6 +233,33 @@ foreach my $dev ( @device ) { # once per device
 exit printResult();
 
 # ===================== FUNCTIONS ============================
+
+###########################
+sub printEntry {
+###########################
+    $_ = shift;
+
+	my $entrys = <<"HDOC";
+    ID:         $_->{ID}
+    AttribName: $_->{AttribName}
+    Flag:       $_->{Flag}
+    Value:      $_->{Value}
+    Worst:      $_->{Worst}
+    Thresh:     $_->{Thresh}
+    Type:       $_->{Type}
+    Updated:    $_->{Updated}
+    WhenFailed: $_->{WhenFailed}
+    RawValue:   $_->{RawValue}
+    CR:         $_->{CR}
+    WarnVal:    $_->{WarnVal}
+    CritVal:    $_->{CritVal}
+    WantedVal:  $_->{WantedVal}
+    Controller: $_->{Controller}
+    DeviceID:   $_->{DeviceID}
+HDOC
+
+    say( $entrys );
+}
 
 ###########################
 sub getSmartCtlVersion {
@@ -270,30 +310,6 @@ sub getSmartCtlVersion {
 }
 
 ###########################
-sub printEntry {
-###########################
-    $_ = shift;
-    say( "
-        ID: ". $_->{ID}. "
-        AttribName: ". $_->{AttribName} ."
-        Flag: ". $_->{Flag} ."
-        Value: ". $_->{Value} ."
-        Worst: ". $_->{Worst} ."
-        Thresh: ". $_->{Thresh} ."
-        Type: ". $_->{Type} ."
-        Updated: ". $_->{Updated} ."
-        WhenFailed: ". $_->{WhenFailed} ."
-        RawValue: ". $_->{RawValue} ."
-        CR: ". $_->{CR} ."
-        WarnVal: ". $_->{WarnVal} ."
-        CritVal: ". $_->{CritVal} ."
-        WantedVal: ". $_->{WantedVal} ."
-        Controller: ". $_->{Controller} ."
-        DeviceID: ". $_->{DeviceID} ."
-    " );
-}
-
-###########################
 sub spc2Uc {
 ###########################
     $_ = shift;
@@ -305,6 +321,7 @@ sub spc2Uc {
 sub octStr2Dec {
 ###########################
     $_ = shift;
+
     $_ =~ s/^[0]+([1-90]+)/$1/;
     return $_;
 }
@@ -414,7 +431,17 @@ sub validateResult {
     my $device  = shift;
     my $entry   = shift;
 
-    my $result = isBelowThreshhold( $entry->{'ID'}, $entry->{Value}, $entry->{RawValue}, $entry->{Thresh}, $entry->{WarnVal}, $entry->{CritVal}, $entry->{CR}, $entry->{WantedVal} );
+    my $result = isBelowThreshhold(
+		$entry->{'ID'},
+		$entry->{Value},
+		$entry->{RawValue},
+		$entry->{Thresh},
+		$entry->{WarnVal},
+		$entry->{CritVal},
+		$entry->{CR},
+		$entry->{WantedVal}
+	);
+
     addResultInformation( $device, $entry, $result );
 }
 
@@ -487,6 +514,8 @@ sub addResultInformation {
         $glob_result->{Devices}->{$device}->{Unknown}->{Count}      = 0;
         $glob_result->{Devices}->{$device}->{Unknown}->{Message}    = [];
         $glob_result->{Devices}->{$device}->{Unknown}->{PerfData}   = [];
+
+		$glob_result->{Devices}->{$device}->{VendorInfo}			= getDeviceInfos( $device );
     }
 
     if( $result == WARNING )        { pushToGlobal( $device, $entry, WARNING ); }
@@ -544,6 +573,10 @@ sub printResult {
         $finalmsg .= addLongOutput( $_ );
     }
 
+	if( $deviceinfo ) {
+		$finalmsg .= addVendorInfos( $_ );
+	}
+
     say( $finalmsg );
     return $retval;
 }
@@ -569,10 +602,10 @@ sub addPerfdata {
 ###########################
 sub longOutputMsg {
 ###########################
-    $_      = shift;
-    my $dev    = shift;
-    my $state  = shift;
-    my $msg    = shift;
+    $_			= shift;
+    my $dev		= shift;
+    my $state	= shift;
+    my $msg		= shift;
 
     switch( $state ) {
         case OK         { $state = "OK:"; }
@@ -586,6 +619,23 @@ sub longOutputMsg {
             ? ( $_->{Devices}->{$dev}->{Controller} ." - [ DeviceID ". $_->{Devices}->{$dev}->{DeviceID} ." ]" )
             : $_->{Devices}->{$dev}->{DevName}
     ) ." - ". $msg ."\n";
+}
+
+###########################
+sub addVendorInfos {
+###########################
+	$_ = shift;
+	my $finalmsg = "";
+
+	foreach my $dev ( keys %{$_->{Devices}} ) {
+		$finalmsg .= (
+			"================= ". $dev ." info begin =================\n".
+			join( "\n", @{$_->{Devices}->{$dev}->{VendorInfo}}). "\n".
+			"================= ". $dev ." info end ==================="
+		);
+	}
+
+	return $finalmsg; 
 }
 
 ###########################
@@ -617,7 +667,7 @@ sub addLongOutput {
         }
     }
 
-    return $finalmsg;
+    return (( !$perfdata ) ? "|\n". $finalmsg : $finalmsg );
 }
 
 ###########################
@@ -667,8 +717,6 @@ sub getWarnValFromAttributeID {
     my $for_id  = shift;
     my $config  = shift;
 
-    #say( Dumper( $config ) ) if DEBUG;
-    
     if( defined $config ) {
         if( exists $config->{Threshs} ) {
             foreach my $entry ( keys %{$config->{Threshs}} ) {
@@ -820,8 +868,8 @@ sub getDeviceFromDB {
 ###########################
     my $dev = shift;
 
-    foreach my $e1 ( keys $database->{Devices} ) {
-        foreach my $e2 ( keys $database->{Devices}->{$e1} ) {
+    foreach my $e1 ( keys %{$database->{Devices}} ) {
+        foreach my $e2 ( keys %{$database->{Devices}->{$e1}} ) {
             foreach my $e3 ( @{$database->{Devices}->{$e1}->{Device}} ) {
                 if( $dev =~ m/$e3/ ) {
                     return $database->{Devices}->{$e1};
@@ -838,11 +886,9 @@ sub getDeviceFromCfg {
     my $result  = undef;
     my $found   = 0;
 
-	#say( Dumper( $dev ) ) if( DEBUG );
-
     if( defined $config ) {
-        foreach my $e1 ( keys $config->{Devices} ) {
-            foreach my $e2 ( keys $config->{Devices}->{$e1} ) {
+        foreach my $e1 ( keys %{$config->{Devices}} ) {
+            foreach my $e2 ( keys %{$config->{Devices}->{$e1}} ) {
                 foreach my $e3 ( @{$config->{Devices}->{$e1}->{Device}} ) {
                     last if( $found );
                     if( $dev =~ m/$e3/ ) {
@@ -903,8 +949,6 @@ sub getConfigHash {
     };
 
     close( $fh ) if( defined $fh );
-     
-    #say( Dumper( $chash ) ) if DEBUG;
     return $chash;
 }
 
@@ -960,13 +1004,21 @@ sub getSmartOutput {
         unless( -e $path ) {
             IOException->throw( "can't execute \"". $path ."\" - possibly insufficient rights." );
         } else {
-            open( $fh, "-|", ( $sudo ) ? "sudo ".$path." -a -d ".$wanted_dev : $path." -a -d ".$wanted_dev );
-            say( "EXECUTE: ". (( $sudo ) ? "sudo ".$path." -a -d ".$wanted_dev : $path." -a -d ".$wanted_dev) ) if( $verbose > 1 );
-            #open( $fh, "-|", ( $sudo ) ? "sudo ".$path." -a ".$wanted_dev : $path." -a ".$wanted_dev );
+
+			say( "EXECUTE: ". (( $sudo )
+				? "sudo ".$path." -a ".(($hasraid) ? "-d " : " ").$wanted_dev
+				: $path." -a ".(($hasraid) ? "-d " : " ").$wanted_dev)
+			) if( $verbose > 1 );
+            open( $fh, "-|", ( $sudo )
+				? "sudo ".$path." -a ".(($hasraid) ? "-d " : " ").$wanted_dev
+				: $path." -a ".(($hasraid) ? "-d " : " ").$wanted_dev
+			);
+
             if( ($? >> 8) & 2 ) {
                 say( "Error: smartctl returned \"No such device\" for device \"". $wanted_dev ."\"" );
                 exit UNKNOWN;
             }
+
             @out = <$fh>;
         }
     }
@@ -990,6 +1042,73 @@ sub getSmartOutput {
 }
 
 
+###########################
+sub getDeviceInfos {
+###########################
+	# gets all information from === START OF INFORMATION === section
+	my $wanted_dev = shift;
+	my $fh  = undef;
+	my @out = undef;
+
+    try {
+		# get rid of all unserscores, replace them with spaces
+		$wanted_dev =~ s/_/ /g;
+
+        unless( -e $path ) {
+            IOException->throw( "can't execute \"". $path ."\" - possibly insufficient rights." );
+        } else {
+            say( "EXECUTE: ". (( $sudo )
+				? "sudo ".$path." -i ".(($hasraid) ? "-d " : " ").$wanted_dev
+				: $path." -i ".(($hasraid) ? "-d " : " ").$wanted_dev)
+			) if( $verbose > 1 );
+            open( $fh, "-|", ( $sudo )
+				? "sudo ".$path." -i ".(($hasraid) ? "-d " : " ").$wanted_dev 
+				: $path." -i ".(($hasraid) ? "-d " : " ").$wanted_dev
+			);
+            if( ($? >> 8) & 2 ) {
+                say( "Error: smartctl returned \"No such device\" for device \"". $wanted_dev ."\"" );
+                exit UNKNOWN;
+            }
+            @out = <$fh>;
+        }
+    }
+    catch {
+        if( blessed $_ and $_->isa( 'IOException' ) ) {
+            say( "IO-EXCEPTION: ". $_->error ."" );
+        }
+        else {
+            if( blessed $_ and $_->can( 'rethrow' ) ) {
+                $_->rethrow();
+            } else {
+                die $_;
+            }
+        }
+
+        exit UNKNOWN;
+    };
+
+	# get usefull device information
+	chomp( @out );
+	my $begin	= 0;
+	my $result	= [];
+
+	foreach ( @out ) {
+		if( $_ =~ m/===\s+START\s+OF\s+INFORMATION/ ) {
+			$begin = 1;
+		} else {
+			if( $begin == 1 ) {
+				unless( length($_) == 0 or
+						$_ =~ m/(SMART support is|Local Time is|Device is)/ ) {
+					push( @{$result}, $_ );
+				}
+			}
+		}
+	}
+
+    return $result;
+}
+
+
 # ===================== MODULES ==============================
 
 package log;
@@ -997,18 +1116,21 @@ package log;
 ###########################
 sub info {
 ###########################
+	;; # not yet implemented
 }
 
 
 ###########################
 sub debug {
 ###########################
+	;; # not yet implemented
 }
 
 
 ###########################
 sub error {
 ###########################
+	;; # not yet implemented
 }
 
 
@@ -1019,8 +1141,20 @@ package main;
 ###########################
 sub help {
 ###########################
-	say( "
-  [-p|--path <path to smartctl]
+	my $help = <<'HDOC';
+
+  +----------------------------------------------------------------------------------+
+  | +------------------------------------------------------------------------------+ |
+  | |     Check S.M.A.R.T. Values                                                  | |
+  | |     Author: Enrico Labedzki <enrico.labedzki@netways.de>                     | |
+  | |                                                                              | |
+  | |     NETWAYS GmbH, www.netways.de, info@netways.de 2014 - 2015                | |
+  | |     License: GPLv2                                                           | |
+  | |     http://www.gnu.org/licenses/gpl-2.0.html                                 | |
+  | +------------------------------------------------------------------------------+ |
+  +----------------------------------------------------------------------------------+
+
+  [-p|--path /path/to/smartctl]
         Specify the path at which the smartctl binary can be found. Per
         default /usr/sbin/smartctl is taken.
   [-d|--device <path to device being checked>]
@@ -1028,13 +1162,16 @@ sub help {
         checked provide the '-d' option multiple times.
 		The Parameter schould be Quoted for eq. 'megaraid Controller'
 		or something Special Smartmon-Syntax like '-d \"megaraid,22 /dev/blah\"'.
-  [-db|--database /path/to/JSON-file]
+  [-r|--raid]
+        indicates that your give device path is behind a raid controller, which
+        tells the plugin to use other smartctl flags.
+  [-db|--database /path/to/check_smartvalues.db.json]
         Specify the path at which the JSON smart db can be found. The JSON file
         defines which parameter (VALUE or RAW_VALUE) must be taken for a
         sensor. In order to interpret a sensor it is necessary to know which
         value to take. As this mapping can be different for device models a
         database is needed for a device.
-  [-c|--config /path/to/Config-JSON-file]
+  [-c|--config /path/to/check_smartvalues.cfg.json]
         Specify the path at which the JSON user config file can be found.
         The user config can be used to override thresholds and performance values
         in the base config. This can be useful if the thresholds for a specific
@@ -1051,8 +1188,15 @@ sub help {
          -v ..... single line output with additional details for warnings
          -vv ..... multi line output, also with additional details for warnings
          -vvv ..... normal output, then debugging output
+  [-pd|--perfdata]
+        add performance data to output.
+  [-di|--deviceinfo]
+        add device information to longoutput.
   [-h|--help]
-       show this help\n" );
+       show this help\n
+HDOC
+
+	say( $help );
 }
 
 __END__
