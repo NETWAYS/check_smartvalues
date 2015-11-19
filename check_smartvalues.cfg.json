@@ -16,7 +16,29 @@
             "Perfs" : ["241","242"]
         },
         "Intel SSD DC S3500 Series" : {
-            "Device" : ["INTEL SSDSC2BB480G4"],
+            "Device" : ["INTEL SSDSC2BB480G4", "INTEL SSDSC2BB240G4"],
+            "Threshs" : {
+                "171" : ["16","11"],
+                "172" : ["16","11"],
+                "184" : ["96","91"],
+                "232" : ["16","11"],
+                "233" : ["16","6"]
+            },
+            "Perfs" : ["233","241","242"]
+        },
+        "Intel SSD DC S3510 Series" : {
+            "Device" : ["INTEL SSDSC2BB120G6"],
+            "Threshs" : {
+                "171" : ["16","11"],
+                "172" : ["16","11"],
+                "184" : ["96","91"],
+                "232" : ["16","11"],
+                "233" : ["16","6"]
+            },
+            "Perfs" : ["233","241","242"]
+        },
+        "Intel SSD DC S3700 Series" : {
+            "Device" : ["INTEL SSDSC2BA400G3"],
             "Threshs" : {
                 "171" : ["16","11"],
                 "172" : ["16","11"],
@@ -29,7 +51,19 @@
         "Samsung SSD 850 EVO 120GB": {
             "Device" : ["Samsung SSD 850 EVO 120GB"],
             "Threshs" : {
-                "177": ["2000", "2100"]
+                "177": ["1900", "2000"]
+            }
+        },
+        "Samsung SSD 850 EVO 500GB": {
+            "Device" : ["Samsung SSD 850 EVO 500GB"],
+            "Threshs" : {
+                "177": ["1900", "2000"]
+            }
+        },
+        "Samsung Enterpise PM863": {
+            "Device" : ["SAMSUNG MZ7LM240HCGR-00003", "SAMSUNG MZ7GE480HMHP-00003", "SAMSUNG MZ7GE240HMGR-00003"],
+            "Threshs" : { 
+                "177": ["1900", "2000"]
             }
         }
 	}
