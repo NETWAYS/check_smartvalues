@@ -15,4 +15,4 @@ releases:
         name: check_smartvalues.tar.bz2
         url: "file:///check_smartvalues.tar.bz2"
         description: "The entire bundle with all files you need, to get them up and running."
-		checksum: 1a271b4a9038e073d5c008eefdfa3ab2
+        checksum: 1a271b4a9038e073d5c008eefdfa3ab2
