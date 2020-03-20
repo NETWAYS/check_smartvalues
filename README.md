@@ -80,6 +80,12 @@ ATA Version is:   ACS-2 (minor revision not indicated)
 SATA Version is:  SATA 3.0, 6.0 Gb/s (current: 6.0 Gb/s)
 ================= megaraid,21_/dev/sda info end ===================
 #
+
+</code></pre>
+
+If you need to specify custom `-d` for smartctl command, here's an example
+<pre><code>
+./check_smartvalues -db ./check_smartvalues.db.json -c ./check_smartvalues.cfg.json -d "-d sat /dev/sdb"
 </code></pre>
 
 
