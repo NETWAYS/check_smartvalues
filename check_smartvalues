@@ -31,7 +31,7 @@ BEGIN {
     ];
 
     my $unavail = [];
-    
+
     foreach my $modul ( @{$mods} ) {
         eval( "use ".$modul );
         if( $@ ) {
@@ -152,7 +152,7 @@ HDOC
 
 try {
     unless( defined $config ) {
-        $config = { 
+        $config = {
             "Devices" => {
                 "NULLDEV" => {
                     "Device" => [ "ZERO ID" ],
@@ -176,7 +176,7 @@ catch {
             die $_;
         }
     }
-    
+
     exit UNKNOWN;
 };
 
@@ -196,7 +196,7 @@ foreach my $dev ( @device ) { # once per device
 
     foreach my $line ( @smartoutput ) {
 		my $tracked_dev = undef;
-        
+
 		if( $line =~ m/Model Family:\s+(.*)/ or
 			$line =~ m/Device Model:\s+(.*)/ ) {
             $tracked_dev->{Name} = $1;
@@ -208,7 +208,7 @@ foreach my $dev ( @device ) { # once per device
             	$tracked_dev->{DeviceID}    = getDeviceIDFromDB( $dev );
 
 				my @result = undef;
-				if( defined $tracked_dev->{Attributes} and 
+				if( defined $tracked_dev->{Attributes} and
 					ref $tracked_dev->{Attributes} ) {
             		@result = getAttributeTable( \@smartoutput, $tracked_dev->{Attributes}, $tracked_dev->{Config} );
 				} else {
@@ -271,7 +271,7 @@ sub getSmartCtlVersion {
 
 	try {
 		open( $fh, "-|", ( $sudo ) ? "sudo ".$path." -V" : $path." -V" );
-		@out = <$fh>;	
+		@out = <$fh>;
 	}
 	catch {
         if( blessed $_ and $_->isa( 'IOException' ) ) {
@@ -379,9 +379,9 @@ sub isBelowThreshhold {
     }
 
     # -------------------------------------------------
-    
+
     if( $retval == WARNING ) { # so it can also be a critical, let's check this ..
-        if( $crit == 0 ) { 
+        if( $crit == 0 ) {
             unless( $reverse ) {
                 if( $type eq "NV" ) {
                     if      ( $thresh >= $nvalue ) { say( "\tID# ".$id.': $crit == 0 , unless $reverse , $thresh > $nvalue , CRITICAL' ) if( $verbose > 2 ); $retval = CRITICAL; }
@@ -635,7 +635,7 @@ sub addVendorInfos {
 		);
 	}
 
-	return $finalmsg; 
+	return $finalmsg;
 }
 
 ###########################
@@ -652,17 +652,17 @@ sub addLongOutput {
         }
         if( $_->{Devices}->{$dev}->{Warning}->{Count} > 0 ) {
             foreach my $msg ( @{$_->{Devices}->{$dev}->{Warning}->{Message}} ) {
-                $finalmsg .= longOutputMsg( $_, $dev, WARNING, $msg ); 
+                $finalmsg .= longOutputMsg( $_, $dev, WARNING, $msg );
             }
         }
         if( $_->{Devices}->{$dev}->{Critical}->{Count} > 0 ) {
             foreach my $msg ( @{$_->{Devices}->{$dev}->{Critical}->{Message}} ) {
-                $finalmsg .= longOutputMsg( $_, $dev, CRITICAL, $msg ); 
+                $finalmsg .= longOutputMsg( $_, $dev, CRITICAL, $msg );
             }
         }
         if( $_->{Devices}->{$dev}->{Unknown}->{Count} > 0 ) {
             foreach my $msg ( @{$_->{Devices}->{$dev}->{Unknown}->{Message}} ) {
-                $finalmsg .= longOutputMsg( $_, $dev, UNKNOWN, $msg ); 
+                $finalmsg .= longOutputMsg( $_, $dev, UNKNOWN, $msg );
             }
         }
     }
@@ -788,7 +788,7 @@ sub getAttributeTable {
     my $config      = shift;
 
     my @result = ();
-    
+
     my $begin_of_table  = 0;
     my $end_of_table    = 0;
     foreach my $line ( @{$smartout} ) {
@@ -805,7 +805,7 @@ sub getAttributeTable {
                 } else {
                     $line =~ s/^\s+//i; # removes leading spaces
                     my @val = split( /\s+/, $line );
-        
+
                     push( @result, {
                         ID          => trim( $val[0] ),
                         AttribName  =>
@@ -925,7 +925,7 @@ sub getConfigHash {
                 or IOException->throw( "can't open/read \"". $config ."\" - file." );
             my $jsonparser = new JSON::XS;
             $jsonparser->utf8( 1 );
-            $chash = $jsonparser->decode( join( "\n", <$fh> ) ) 
+            $chash = $jsonparser->decode( join( "\n", <$fh> ) )
                 or JSONException->throw( "can't parse JSON data from \"". $config ."\" - file." );
         }
     }
@@ -957,7 +957,7 @@ sub getDatabaseHash {
 ###########################
     my $fh      = undef;
     my $dhash   = undef;
-    
+
     try {
         unless( -e $database ) {
             IOException->throw( "\"". $database ."\" - file not found." );
@@ -1062,7 +1062,7 @@ sub getDeviceInfos {
 				: $path." -i ".(($hasraid) ? "-d " : " ").$wanted_dev)
 			) if( $verbose > 1 );
             open( $fh, "-|", ( $sudo )
-				? "sudo ".$path." -i ".(($hasraid) ? "-d " : " ").$wanted_dev 
+				? "sudo ".$path." -i ".(($hasraid) ? "-d " : " ").$wanted_dev
 				: $path." -i ".(($hasraid) ? "-d " : " ").$wanted_dev
 			);
             if( ($? >> 8) & 2 ) {

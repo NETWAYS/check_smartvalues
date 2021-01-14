@@ -1,8 +1,8 @@
 
 # check_smartvalues
 
-You want to monitor your HDD/SSD(s), her is a solution to do it, try it out.
- 
+You want to monitor your HDD/SSD(s), here is a solution to do it, try it out.
+
 ### Features
  - prints performance data for inGraph ( and other solutions like Graphana, maybe in the near future )
  - unknown attribute autocorrection ( through smartvalues json database )
@@ -45,7 +45,7 @@ OK: on LSI MegaRAID - [ DeviceID 22 ] - #249 - Total_NAND_Writes is [ 100 ]
 <pre><code>
 # cd /path/to/check_smartvalues
 # ./check_smartvalues -c check_smartvalues.cfg.json -db check_smartvalues.db.json -di -d "megaraid,21 /dev/sda" -r -pd
-WARNING: [ 21 OK ] - [ 1 WARNING ] - [ 0 CRITICAL ] - [ 0 UNKNOWN ] in 0.221s ( longoutput for details ) | 'megaraid,21_/dev/sda - Reallocated_Sector_Ct'=100%;0;0 'megaraid,21_/dev/sda - Power_On_Hours'=100%;200;300 'megaraid,21_/dev/sda - Power_Cycle_Count'=100%;0;0 'megaraid,21_/dev/sda - Available_Reserved_Space'=100%;0;0 'megaraid,21_/dev/sda - Program_Fail_Count'=100%;0;0 'megaraid,21_/dev/sda - Erase_Fail_Count'=100%;0;0 'megaraid,21_/dev/sda - Unexpected_Power_Loss'=100%;0;0 'megaraid,21_/dev/sda - Runtime_Bad_Block'=100%;0;0 'megaraid,21_/dev/sda - End-to-End_Error'=100%;0;0 'megaraid,21_/dev/sda - Reported_Uncorrect'=100%;0;0 'megaraid,21_/dev/sda - Airflow_Temperature_Cel'=29c;0;0 'megaraid,21_/dev/sda - Power-Off_Retract_Count'=100%;0;0 'megaraid,21_/dev/sda - UDMA_CRC_Error_Count'=100%;0;0 'megaraid,21_/dev/sda - Host_Writes'=100%;0;0 'megaraid,21_/dev/sda - Timed_Workload_Media_Wear'=100%;0;0 'megaraid,21_/dev/sda - Timed_Workload_Host_Read/Write _Ratio'=100%;0;0 'megaraid,21_/dev/sda - Power-off_Retract_Count'=100%;0;0 'megaraid,21_/dev/sda - Available_Reservd_Space'=100%;0;0 'megaraid,21_/dev/sda - Total_LBAs_Written'=100%;0;0 'megaraid,21_/dev/sda - Total_LBAs_Read'=100%;0;0 'megaraid,21_/dev/sda - Total_NAND_Writes'=100%;0;0 'megaraid,21_/dev/sda - Media_Wearout_Indicator'=033%;35;25 
+WARNING: [ 21 OK ] - [ 1 WARNING ] - [ 0 CRITICAL ] - [ 0 UNKNOWN ] in 0.221s ( longoutput for details ) | 'megaraid,21_/dev/sda - Reallocated_Sector_Ct'=100%;0;0 'megaraid,21_/dev/sda - Power_On_Hours'=100%;200;300 'megaraid,21_/dev/sda - Power_Cycle_Count'=100%;0;0 'megaraid,21_/dev/sda - Available_Reserved_Space'=100%;0;0 'megaraid,21_/dev/sda - Program_Fail_Count'=100%;0;0 'megaraid,21_/dev/sda - Erase_Fail_Count'=100%;0;0 'megaraid,21_/dev/sda - Unexpected_Power_Loss'=100%;0;0 'megaraid,21_/dev/sda - Runtime_Bad_Block'=100%;0;0 'megaraid,21_/dev/sda - End-to-End_Error'=100%;0;0 'megaraid,21_/dev/sda - Reported_Uncorrect'=100%;0;0 'megaraid,21_/dev/sda - Airflow_Temperature_Cel'=29c;0;0 'megaraid,21_/dev/sda - Power-Off_Retract_Count'=100%;0;0 'megaraid,21_/dev/sda - UDMA_CRC_Error_Count'=100%;0;0 'megaraid,21_/dev/sda - Host_Writes'=100%;0;0 'megaraid,21_/dev/sda - Timed_Workload_Media_Wear'=100%;0;0 'megaraid,21_/dev/sda - Timed_Workload_Host_Read/Write _Ratio'=100%;0;0 'megaraid,21_/dev/sda - Power-off_Retract_Count'=100%;0;0 'megaraid,21_/dev/sda - Available_Reservd_Space'=100%;0;0 'megaraid,21_/dev/sda - Total_LBAs_Written'=100%;0;0 'megaraid,21_/dev/sda - Total_LBAs_Read'=100%;0;0 'megaraid,21_/dev/sda - Total_NAND_Writes'=100%;0;0 'megaraid,21_/dev/sda - Media_Wearout_Indicator'=033%;35;25
 OK: on LSI MegaRAID - [ DeviceID 21 ] - #5 - Reallocated_Sector_Ct is [ 100 ]
 OK: on LSI MegaRAID - [ DeviceID 21 ] - #9 - Power_On_Hours is [ 100 ] - [ w: 200, c: 300 ]
 OK: on LSI MegaRAID - [ DeviceID 21 ] - #12 - Power_Cycle_Count is [ 100 ]
@@ -95,10 +95,10 @@ If you need to specify custom `-d` for smartctl command, here's an example
 
 ### ToDo
 
- - rewrite to use threads for faster scans over SAS storage boxes ( is cuurently under development )
+ - rewrite to use threads for faster scans over SAS storage boxes ( is curently under development )
  - a better debug output ( a long running gag )
  - a better documentation and usage descriptions/examples ( there where some improvments with 0.4 )
- - better performance data labels ( it's hard to make that better, cuurently no ideas )
+ - better performance data labels ( it's hard to make that better, curently no ideas )
 
 ## Changelog
 
@@ -113,7 +113,7 @@ If you need to specify custom `-d` for smartctl command, here's an example
    - fixed a bug which corrects the condition between normal and raw values
    - fixed the verbose debug output of return value condition description
 
- - [bugfix/critical] when the normalized value is in warning but not critical, the critical elsif condition overrides always the warning $retval, so the check ( eg. ID ) will never be in a warning state 
+ - [bugfix/critical] when the normalized value is in warning but not critical, the critical elsif condition overrides always the warning $retval, so the check ( eg. ID ) will never be in a warning state
  - [initial release] version 0.1
 
 ## Git history
