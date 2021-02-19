@@ -16,7 +16,7 @@ You want to monitor your HDD/SSD(s), her is a solution to do it, try it out.
 
 <pre><code>
 # cd /path/to/check_smartvalues
-# ./check_smartvalues -db check_smartvalues.db.json -c check_smartvalues.db.json -s -d 'megaraid,22 /dev/sda' -r
+# ./check_smartvalues -db check_smartvalues.db.json -c check_smartvalues.cfg.json -s -d 'megaraid,22 /dev/sda' -r
 OK: [ 22 OK ] - [ 0 WARNING ] - [ 0 CRITICAL ] - [ 0 UNKNOWN ] in 0.163ms ( longoutput for details )
 OK: on LSI MegaRAID - [ DeviceID 22 ] - #5 - Reallocated_Sector_Ct is [ 100 ]
 OK: on LSI MegaRAID - [ DeviceID 22 ] - #9 - Power_On_Hours is [ 100 ] - [ w: 200, c: 300 ]
