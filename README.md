@@ -14,7 +14,7 @@ You want to monitor your HDD/SSD(s), here is a solution to do it, try it out.
 
 ### Usage
 
-<pre><code>
+```
 # cd /path/to/check_smartvalues
 # ./check_smartvalues -db check_smartvalues.db.json -c check_smartvalues.db.json -s -d 'megaraid,22 /dev/sda' -r
 OK: [ 22 OK ] - [ 0 WARNING ] - [ 0 CRITICAL ] - [ 0 UNKNOWN ] in 0.163ms ( longoutput for details )
@@ -41,8 +41,9 @@ OK: on LSI MegaRAID - [ DeviceID 22 ] - #241 - Total_LBAs_Written is [ 100 ]
 OK: on LSI MegaRAID - [ DeviceID 22 ] - #242 - Total_LBAs_Read is [ 100 ]
 OK: on LSI MegaRAID - [ DeviceID 22 ] - #249 - Total_NAND_Writes is [ 100 ]
 #
-</code></pre>
-<pre><code>
+```
+
+```
 # cd /path/to/check_smartvalues
 # ./check_smartvalues -c check_smartvalues.cfg.json -db check_smartvalues.db.json -di -d "megaraid,21 /dev/sda" -r -pd
 WARNING: [ 21 OK ] - [ 1 WARNING ] - [ 0 CRITICAL ] - [ 0 UNKNOWN ] in 0.221s ( longoutput for details ) | 'megaraid,21_/dev/sda - Reallocated_Sector_Ct'=100%;0;0 'megaraid,21_/dev/sda - Power_On_Hours'=100%;200;300 'megaraid,21_/dev/sda - Power_Cycle_Count'=100%;0;0 'megaraid,21_/dev/sda - Available_Reserved_Space'=100%;0;0 'megaraid,21_/dev/sda - Program_Fail_Count'=100%;0;0 'megaraid,21_/dev/sda - Erase_Fail_Count'=100%;0;0 'megaraid,21_/dev/sda - Unexpected_Power_Loss'=100%;0;0 'megaraid,21_/dev/sda - Runtime_Bad_Block'=100%;0;0 'megaraid,21_/dev/sda - End-to-End_Error'=100%;0;0 'megaraid,21_/dev/sda - Reported_Uncorrect'=100%;0;0 'megaraid,21_/dev/sda - Airflow_Temperature_Cel'=29c;0;0 'megaraid,21_/dev/sda - Power-Off_Retract_Count'=100%;0;0 'megaraid,21_/dev/sda - UDMA_CRC_Error_Count'=100%;0;0 'megaraid,21_/dev/sda - Host_Writes'=100%;0;0 'megaraid,21_/dev/sda - Timed_Workload_Media_Wear'=100%;0;0 'megaraid,21_/dev/sda - Timed_Workload_Host_Read/Write _Ratio'=100%;0;0 'megaraid,21_/dev/sda - Power-off_Retract_Count'=100%;0;0 'megaraid,21_/dev/sda - Available_Reservd_Space'=100%;0;0 'megaraid,21_/dev/sda - Total_LBAs_Written'=100%;0;0 'megaraid,21_/dev/sda - Total_LBAs_Read'=100%;0;0 'megaraid,21_/dev/sda - Total_NAND_Writes'=100%;0;0 'megaraid,21_/dev/sda - Media_Wearout_Indicator'=033%;35;25
@@ -80,14 +81,12 @@ ATA Version is:   ACS-2 (minor revision not indicated)
 SATA Version is:  SATA 3.0, 6.0 Gb/s (current: 6.0 Gb/s)
 ================= megaraid,21_/dev/sda info end ===================
 #
-
-</code></pre>
+```
 
 If you need to specify custom `-d` for smartctl command, here's an example
-<pre><code>
+```
 ./check_smartvalues -db ./check_smartvalues.db.json -c ./check_smartvalues.cfg.json -d "-d sat /dev/sdb"
-</code></pre>
-
+```
 
 ### Version
 
@@ -95,10 +94,10 @@ If you need to specify custom `-d` for smartctl command, here's an example
 
 ### ToDo
 
- - rewrite to use threads for faster scans over SAS storage boxes ( is curently under development )
+ - rewrite to use threads for faster scans over SAS storage boxes
  - a better debug output ( a long running gag )
  - a better documentation and usage descriptions/examples ( there where some improvments with 0.4 )
- - better performance data labels ( it's hard to make that better, curently no ideas )
+ - better performance data labels ( it's hard to make that better, currently no ideas )
 
 ## Changelog
 
