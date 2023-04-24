@@ -1,3 +1,8 @@
+### This repository will no longer be maintained and is archived
+
+### We recommend these as replacement:
+#### https://github.com/thomas-krenn/check_smart_attributes
+#### https://github.com/Linuxfabrik/monitoring-plugins/tree/main/check-plugins/disk-smart
 
 # check_smartvalues
 
